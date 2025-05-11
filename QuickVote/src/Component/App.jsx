@@ -16,7 +16,6 @@ import SuperAdminDashboard from '../pages/SuperAdminDashboard.jsx';
 import AdminResult from '../pages/AdminResultPage.jsx';
 import SimplePage from '../pages/SimplePage.jsx'
 import Features from './Features.jsx';
-
 function App() {
   return (
     <Router>
@@ -36,8 +35,6 @@ function App() {
         <Route path="/adminresult" element={<AdminResult />} /> 
         <Route path="/simplepage" element={<SimplePage />} />  
         <Route path="/feautres" element={<Features />} />
-
-
       </Routes>
     </Router>
   );

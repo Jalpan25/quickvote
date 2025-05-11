@@ -1,12 +1,14 @@
 import React from 'react';
 
 const steps = [
-  { number: "01", title: "Register", description: "Create your account or log in to your existing one" },
-  { number: "02", title: "Create Election", description: "Set up your election with candidates and voting rules" },
-  { number: "03", title: "Invite Voters", description: "Send secure invitations to your voting population" },
-  { number: "04", title: "Vote", description: "Participants cast their votes securely from any device" },
-  { number: "05", title: "Results", description: "View accurate results in real-time as votes are tallied" }
+  { number: "01", title: "Request Institution Registration", description: "Institution admin submits a request to register their institution on the platform." },
+  { number: "02", title: "Super Admin Approval", description: "Super admin verifies and approves the registration request to grant access." },
+  { number: "03", title: "Admin Dashboard Access", description: "Once approved, the institution admin gets access to their dashboard to manage polls and surveys." },
+  { number: "04", title: "Create Poll or Survey", description: "Admin creates a poll or survey for users using institution's domain-based email verification." },
+  { number: "05", title: "Notify Participants", description: "Admin shares participation links via WhatsApp, email, or other communication methods." },
+  { number: "06", title: "Participate & View Results", description: "Users cast their votes or submit survey responses and view results when allowed." }
 ];
+
 
 const HowItWorks = () => {
   return (
