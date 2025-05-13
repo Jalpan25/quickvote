@@ -3,56 +3,73 @@ package com.example.QuickVote.controller;
 import com.example.QuickVote.dto.LoginRequestDTO;
 import com.example.QuickVote.dto.AdminRequestDTO;
 import com.example.QuickVote.dto.PendingAdminResponseDTO;
-import com.example.QuickVote.service.AdminService;
+import com.example.QuickVote.dto.AppUser;
 import com.example.QuickVote.model.Admin;
+import com.example.QuickVote.service.AdminService;
+import com.example.QuickVote.service.JwtService;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @RestController
-@RequestMapping("/api/admins")  // Updated mapping to '/api/admins'
+@RequestMapping("/api/admins")
 public class AdminController {
 
     @Autowired
     private AdminService adminService;
 
-    // Endpoint to create admin requests (user wants to become an admin)
+    @Autowired
+    private JwtService jwtService;
+
+    @Autowired
+    private AuthenticationManager authenticationManager;
+
+//    @GetMapping("/secure")
+//    public ResponseEntity<String> testSecureEndpoint() {
+//        return ResponseEntity.ok("✅ Token is valid. You accessed a protected endpoint.");
+//    }
+
+    // ✅ Admin Signup Request
     @PostMapping("/register")
     public ResponseEntity<Map<String, String>> createAdmin(@RequestBody AdminRequestDTO adminRequestDTO) {
         adminService.createAdmin(adminRequestDTO);
-
         Map<String, String> response = new HashMap<>();
         response.put("message", "Your request to become an admin has been received.");
-
         return ResponseEntity.ok(response);
     }
 
-    // New endpoint for admin login
-    @PostMapping("/login")  // Admin login
+    // ✅ Admin Login With JWT Token (using AuthenticationManager)
+    @PostMapping("/login")
     public ResponseEntity<Map<String, String>> login(@RequestBody LoginRequestDTO loginRequest) {
-        // Now using Optional<Admin> for safe handling of null cases
-        Optional<Admin> adminOptional = adminService.findByEmail(loginRequest.getEmail());
-
         Map<String, String> response = new HashMap<>();
+
+        try {
+            // Let Spring validate credentials via UserDetailsService
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword())
+            );
+        } catch (BadCredentialsException e) {
+            response.put("status", "error");
+            response.put("message", "Incorrect email or password.");
+            return ResponseEntity.status(401).body(response);
+        }
+
+        Optional<Admin> adminOptional = adminService.findByEmail(loginRequest.getEmail());
 
         if (adminOptional.isEmpty()) {
             response.put("status", "error");
-            response.put("message", "Email not registered. Please check your email.");
+            response.put("message", "Email not registered.");
             return ResponseEntity.status(404).body(response);
         }
 
-        Admin admin = adminOptional.get(); // Safe to get the admin now
-
-        if (!adminService.checkPassword(loginRequest.getPassword(), admin.getPassword())) {
-            response.put("status", "error");
-            response.put("message", "Incorrect password. Please try again.");
-            return ResponseEntity.status(401).body(response);
-        }
+        Admin admin = adminOptional.get();
 
         if ("pending".equalsIgnoreCase(admin.getRole())) {
             response.put("status", "error");
@@ -60,47 +77,48 @@ public class AdminController {
             return ResponseEntity.status(403).body(response);
         }
 
+        // ✅ Generate JWT after successful authentication
+        AppUser appUser = new AppUser(admin.getEmail(), admin.getRole());
+        String jwtToken = jwtService.generateToken(appUser);
+
         response.put("status", "success");
         response.put("role", admin.getRole());
+        response.put("token", jwtToken);
+
         return ResponseEntity.ok(response);
     }
 
+    // ✅ View pending admin requests (no JWT required)
     @GetMapping("/pending")
     public ResponseEntity<List<PendingAdminResponseDTO>> getPendingAdmins() {
-        List<PendingAdminResponseDTO> pendingAdmins = adminService.getPendingAdmins();
-        return ResponseEntity.ok(pendingAdmins);
+        return ResponseEntity.ok(adminService.getPendingAdmins());
     }
 
+    // ✅ View approved admins (no JWT required)
     @GetMapping("/approved")
     public ResponseEntity<List<PendingAdminResponseDTO>> getApprovedAdmins() {
-        List<PendingAdminResponseDTO> admins = adminService.getApprovedAdmins();
-        return ResponseEntity.ok(admins);
+        return ResponseEntity.ok(adminService.getApprovedAdmins());
     }
 
-    // API to approve or reject admin requests
+    // ✅ Approve/reject admin requests (no JWT required)
     @PostMapping("/process")
     public ResponseEntity<Map<String, String>> processAdminRequest(@RequestBody Map<String, String> request) {
         String email = request.get("email");
         String status = request.get("status");
 
         String message = adminService.processAdminRequest(email, status);
-
-        // Create response JSON
-        Map<String, String> response = new HashMap<>();
-        response.put("message", message);
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(Map.of("message", message));
     }
+
+    // ✅ Get fixed domain by email (no JWT required)
     @PostMapping("/getFixedDomain")
     public ResponseEntity<?> getFixedDomain(@RequestBody Map<String, String> request) {
         String email = request.get("email");
-
         if (email == null || email.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Email is required"));
         }
 
         String fixedDomain = adminService.getFixedDomainByEmail(email);
-
         if (fixedDomain == null) {
             return ResponseEntity.status(404).body(Map.of("error", "Admin not found"));
         }

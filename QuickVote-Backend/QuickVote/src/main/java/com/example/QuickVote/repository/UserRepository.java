@@ -1,10 +1,5 @@
 package com.example.QuickVote.repository;
 
-//public interface UserRepository {
-//}
-//package com.example.demo.repository;
-
-//import com.example.demo.entities.User;
 import com.example.QuickVote.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;

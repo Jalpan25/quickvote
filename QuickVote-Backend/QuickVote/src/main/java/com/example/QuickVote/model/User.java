@@ -27,11 +27,33 @@ public class User {
         this.isVerified = isVerified;
     }
 
+    public User(Long id, String email, boolean isVerified) {
+        this.id = id;
+        this.email = email;
+        this.isVerified = isVerified;
+    }
+
     public boolean isVerified() {
         return isVerified;
     }
 
     public void setVerified(boolean verified) {
         isVerified = verified;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 }
