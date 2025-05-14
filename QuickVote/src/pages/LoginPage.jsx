@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { loginAdmin } from "../APIs/adminAPI";
 import Loginfig from "../Assets/logingif1.png"
+import { jwtDecode } from "jwt-decode";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
@@ -11,27 +12,32 @@ const LoginPage = () => {
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
-    e.preventDefault();
-    try {
-      const response = await loginAdmin(email, password);
+  e.preventDefault();
+  try {
+    const response = await loginAdmin(email, password);
 
-      if (response.status === "success") {
-        if (response.role === "admin") {
-          localStorage.setItem("adminEmail", email);
-          localStorage.setItem("adminRole", "admin");
-          navigate("/admindashboard");
-        } else if (response.role === "superAdmin") {
-          localStorage.setItem("superAdminEmail", email);
-          localStorage.setItem("superAdminRole", "superAdmin");
-          navigate("/superadmindashboard");
-        }
+    if (response.status === "success") {
+      const token = response.token;
+      localStorage.setItem("token", token); // Store JWT
+
+      const decoded = jwtDecode(token);
+      const role = decoded.role;
+
+      // Navigate based on role
+      if (role === "admin") {
+        navigate("/admindashboard");
+      } else if (role === "superAdmin") {
+        navigate("/superadmindashboard");
       } else {
-        setError(response.message);
+        setError("Unauthorized role");
       }
-    } catch (error) {
-      setError("Something went wrong. Please try again.");
+    } else {
+      setError(response.message || "Invalid credentials.");
     }
-  };
+  } catch (error) {
+    setError("Something went wrong. Please try again.");
+  }
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex justify-center items-center px-4">

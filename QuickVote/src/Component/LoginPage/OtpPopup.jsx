@@ -2,7 +2,7 @@ import React from "react";
 import OtpInput from "./OtpInput";
 import ErrorMessage from "./ErrorMessage";
 import Button from "./Button";
-import LoadingSpinner from "../LoadingSpinner";
+import LoadingSpinner from "./LoadingSpinner";
 
 const OtpPopup = ({
   email,

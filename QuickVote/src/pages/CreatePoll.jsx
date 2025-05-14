@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import OptionComponent from "../Component/OptionComponent";
 import { useLocation, useNavigate } from "react-router-dom";
-import { createPollAPI } from "../APIs/pollApi";
+import { createSurveyAPI, fetchFixedDomainAPI } from "../APIs/createSurveyAPI";
 import { validatePoll } from "../utils/validationPollUtils";
 
 const CreatePoll = () => {
@@ -10,14 +10,33 @@ const CreatePoll = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [endTime, setEndTime] = useState("");
   const [emailPrefix, setEmailPrefix] = useState("");
-const [emailRestrictionMode, setEmailRestrictionMode] = useState("custom"); // 'anyone' or 'custom'
-
+  const [emailRestrictionMode, setEmailRestrictionMode] = useState("custom"); // 'anyone' or 'custom'
+  const [fixedDomain, setFixedDomain] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const location = useLocation();
   const navigate = useNavigate();
   const adminEmail = location.state?.adminEmail || "";
-  const fixedDomain = location.state?.fixedDomain || localStorage.getItem("fixedDomain") || "";
+
+  // Fetch fixed domain from API on component mount
+  useEffect(() => {
+    const fetchDomain = async () => {
+      try {
+        setIsLoading(true);
+        const domain = await fetchFixedDomainAPI(adminEmail);
+        setFixedDomain(domain);
+      } catch (error) {
+        setErrorMessage(`Failed to fetch domain: ${error.message}`);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (adminEmail) {
+      fetchDomain();
+    }
+  }, [adminEmail]);
 
   const addOption = () => {
     setQuestion({ ...question, options: [...question.options, ""] });
@@ -48,20 +67,20 @@ const [emailRestrictionMode, setEmailRestrictionMode] = useState("custom"); // '
     }
 
     setErrorMessage("");
+    setIsLoading(true);
 
     const pollData = {
       adminEmail,
       emailRestriction: emailRestrictionMode === "anyone"
-  ? "all" + fixedDomain
-  : emailPrefix + fixedDomain,
-
+        ? "all" + fixedDomain
+        : emailPrefix + fixedDomain,
       endTime,
       title,
       questions: [{ text: question.text, options: question.options }],
     };
 
     try {
-      await createPollAPI(pollData);
+      await createSurveyAPI(pollData);
       setSuccessMessage("Poll created successfully!");
       setTimeout(() => {
         navigate('/admindashboard');
@@ -69,10 +88,13 @@ const [emailRestrictionMode, setEmailRestrictionMode] = useState("custom"); // '
     } catch (error) {
       console.error("Error creating poll:", error);
       setErrorMessage(`An error occurred while creating the poll: ${error.message}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
- return ( <div className="relative w-full py-12 bg-gradient-to-r from-indigo-100 to-purple-100 overflow-hidden">
+  return (
+    <div className="relative w-full py-12 bg-gradient-to-r from-indigo-100 to-purple-100 overflow-hidden">
       {/* Animated Background Lights */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute w-96 h-96 bg-blue-400 opacity-20 blur-3xl animate-pulse rounded-full top-0 left-0"></div>
@@ -94,6 +116,14 @@ const [emailRestrictionMode, setEmailRestrictionMode] = useState("custom"); // '
             <div className="w-16 h-1 bg-white rounded-full opacity-70"></div>
           </div>
         </div>
+
+        {/* Loading indicator */}
+        {isLoading && (
+          <div className="flex justify-center items-center mb-6">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+            <span className="ml-2 text-indigo-600">Loading...</span>
+          </div>
+        )}
 
         {/* Success Message */}
         {successMessage && (
@@ -146,6 +176,7 @@ const [emailRestrictionMode, setEmailRestrictionMode] = useState("custom"); // '
                             focus:ring-indigo-400 focus:border-transparent
                             bg-white transition-all duration-200
                             text-gray-800 placeholder-indigo-200 font-medium"
+                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -159,6 +190,7 @@ const [emailRestrictionMode, setEmailRestrictionMode] = useState("custom"); // '
                   option={option}
                   onOptionChange={(e) => updateOption(index, e.target.value)}
                   onRemoveOption={() => removeOption(index)}
+                  disabled={isLoading}
                 />
               ))}
             </div>
@@ -167,11 +199,13 @@ const [emailRestrictionMode, setEmailRestrictionMode] = useState("custom"); // '
             <div className="flex flex-wrap gap-3 mt-6 pt-4 border-t border-indigo-100">
               <button
                 onClick={addOption}
+                disabled={isLoading}
                 className="px-4 py-2.5 bg-gradient-to-r from-indigo-400 to-purple-600 text-white
                           rounded-lg font-medium shadow-sm hover:shadow-md 
                           transform transition-all duration-200 hover:-translate-y-1 
                           active:translate-y-0 focus:outline-none 
-                          focus:ring-2 focus:ring-offset-2 focus:ring-indigo-400 flex items-center"
+                          focus:ring-2 focus:ring-offset-2 focus:ring-indigo-400 flex items-center
+                          disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -209,68 +243,73 @@ const [emailRestrictionMode, setEmailRestrictionMode] = useState("custom"); // '
                         focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
                         bg-white shadow-sm transition-all duration-200
                         text-gray-800 placeholder-gray-400"
+              disabled={isLoading}
             />
           </div>
 
-    {/* Email Restriction */}
-    <div className="mb-6">
-  <label className="block font-semibold mb-2 text-gray-800 flex items-center">
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
-    </svg>
-    Allowed Email Domain:
-  </label>
+          {/* Email Restriction */}
+          <div className="mb-6">
+            <label className="block font-semibold mb-2 text-gray-800 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+              </svg>
+              Allowed Email Domain:
+            </label>
 
-  <div className="flex flex-col mt-2 space-y-2">
-    <label className="flex items-center space-x-2">
-      <input
-        type="radio"
-        value="custom"
-        checked={emailRestrictionMode === "custom"}
-        onChange={() => setEmailRestrictionMode("custom")}
-      />
-      <span className="text-gray-700">Custom Email Prefix</span>
-    </label>
+            <div className="flex flex-col mt-2 space-y-2">
+              <label className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  value="custom"
+                  checked={emailRestrictionMode === "custom"}
+                  onChange={() => setEmailRestrictionMode("custom")}
+                  disabled={isLoading}
+                />
+                <span className="text-gray-700">Custom Email Prefix</span>
+              </label>
 
-    {emailRestrictionMode === "custom" && (
-      <div className="flex">
-        <input
-          type="text"
-          placeholder="Enter email prefix like 22ituos***"
-          value={emailPrefix}
-          onChange={(e) => setEmailPrefix(e.target.value)}
-          className="flex-1 px-4 py-3 border-2 border-blue-200 rounded-l-lg 
-                    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                    bg-white shadow-sm transition-all duration-200
-                    text-gray-800 placeholder-gray-400"
-        />
-        <span className="bg-blue-700 text-white px-4 py-3 text-center rounded-r-lg border-2 border-blue-700 font-medium min-w-[120px]">
-          {fixedDomain}
-        </span>
-      </div>
-    )}
+              {emailRestrictionMode === "custom" && (
+                <div className="flex">
+                  <input
+                    type="text"
+                    placeholder="Enter email prefix like 22ituos***"
+                    value={emailPrefix}
+                    onChange={(e) => setEmailPrefix(e.target.value)}
+                    className="flex-1 px-4 py-3 border-2 border-blue-200 rounded-l-lg 
+                              focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                              bg-white shadow-sm transition-all duration-200
+                              text-gray-800 placeholder-gray-400"
+                    disabled={isLoading}
+                  />
+                  <span className="bg-blue-700 text-white px-4 py-3 text-center rounded-r-lg border-2 border-blue-700 font-medium min-w-[120px]">
+                    {fixedDomain || "..."}
+                  </span>
+                </div>
+              )}
 
-    <label className="flex items-center space-x-2">
-      <input
-        type="radio"
-        value="anyone"
-        checked={emailRestrictionMode === "anyone"}
-        onChange={() => setEmailRestrictionMode("anyone")}
-      />
-      <span className="text-gray-700">Anyone with domain <strong className="text-blue-700">{fixedDomain}</strong></span>
-    </label>
-  </div>
+              <label className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  value="anyone"
+                  checked={emailRestrictionMode === "anyone"}
+                  onChange={() => setEmailRestrictionMode("anyone")}
+                  disabled={isLoading}
+                />
+                <span className="text-gray-700">Anyone with domain <strong className="text-blue-700">{fixedDomain || "..."}</strong></span>
+              </label>
+            </div>
 
-  <p className="mt-3 text-sm flex items-center">
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-    <span className="text-purple-700 font-medium">Your email restriction is:</span>
-    <strong className="ml-2 text-blue-700 font-medium border-b border-dotted border-blue-500 pb-0.5">
-      {emailRestrictionMode === "anyone" ? "all" : emailPrefix || "emailprefix"}{fixedDomain}
-    </strong>
-  </p>
-</div>
+            <p className="mt-3 text-sm flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="text-purple-700 font-medium">Your email restriction is:</span>
+              <strong className="ml-2 text-blue-700 font-medium border-b border-dotted border-blue-500 pb-0.5">
+                {emailRestrictionMode === "anyone" ? "all" : emailPrefix || "emailprefix"}{fixedDomain || "..."}
+              </strong>
+            </p>
+          </div>
+
           {/* End Time */}
           <div className="mb-8 relative">
             <label className="block font-semibold mb-2 text-gray-800 flex items-center">
@@ -287,23 +326,35 @@ const [emailRestrictionMode, setEmailRestrictionMode] = useState("custom"); // '
                         focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
                         bg-white shadow-sm transition-all duration-200
                         text-gray-800"
+              disabled={isLoading}
             />
           </div>
 
           {/* Submit Button */}
           <button 
             onClick={createPoll} 
+            disabled={isLoading}
             className="w-full p-4 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-600 text-white rounded-xl 
                       font-bold text-lg shadow-lg hover:shadow-xl 
                       transform transition-all duration-300 hover:-translate-y-1 
                       active:translate-y-0 focus:outline-none 
                       focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500
-                      flex items-center justify-center"
+                      flex items-center justify-center
+                      disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Create Poll
+            {isLoading ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                Processing...
+              </>
+            ) : (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Create Poll
+              </>
+            )}
           </button>
         </div>
       </div>

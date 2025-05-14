@@ -1,79 +1,66 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
 import { fetchSurveysByAdmin, deleteSurvey } from "../APIs/fetchSurveys";
 import logo from '../Assets/user.png';
 
 const AdminDashboard = () => {
     const navigate = useNavigate();
-    const storedEmail = localStorage.getItem("adminEmail") || "Admin";
+    const token = localStorage.getItem("token");
 
-    const [admin, setAdmin] = useState({ email: storedEmail, role: localStorage.getItem("adminRole") || "" });
+    let decoded = {};
+    try {
+        decoded = jwtDecode(token);
+    } catch (e) {
+        console.error("Invalid token");
+        navigate("/login");
+        return;
+    }
+
+    const [admin, setAdmin] = useState({
+        email: decoded.sub || "Admin",
+        role: decoded.role || ""
+    });
+
     const [createdSurveys, setCreatedSurveys] = useState([]);
 
     useEffect(() => {
-        if (storedEmail !== "Admin") {
-            fetchSurveysByAdmin(storedEmail, setAdmin, setCreatedSurveys);
-            fetchFixedDomain(storedEmail);
+        if (decoded.sub) {
+            fetchSurveysByAdmin(decoded.sub, token, setAdmin, setCreatedSurveys);
         }
-    }, [storedEmail]);
-
-    const fetchFixedDomain = async (email) => {
-        try {
-            const response = await fetch("http://localhost:8080/api/admins/getFixedDomain", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ email }),
-            });
-
-            if (!response.ok) {
-                throw new Error("Failed to fetch fixed domain");
-            }
-
-            const data = await response.json();
-            localStorage.setItem("fixedDomain", data.fixedDomain);
-        } catch (error) {
-            console.error("Error fetching fixed domain:", error);
-        }
-    };
+    }, [token, decoded.sub]);
 
     const handleLogout = () => {
-        localStorage.removeItem("adminEmail");
-        localStorage.removeItem("adminRole");
-        localStorage.removeItem("fixedDomain");
+        localStorage.removeItem("token");
         navigate("/login");
     };
 
-    const navigateToSurvey = () => navigate("/CreateSurvey", { state: { adminEmail: storedEmail } });
-    
+    const navigateToSurvey = () => navigate("/CreateSurvey", { state: { adminEmail: decoded.sub } });
+
     const navigateToPoll = () => {
-        const fixedDomain = localStorage.getItem("fixedDomain") || "";
-        navigate("/CreatePoll", { state: { adminEmail: storedEmail, fixedDomain } });
+        navigate("/CreatePoll", { state: { adminEmail: decoded.sub } });
     };
-    
-    const handleEditSurvey = (surveyId) => navigate("/editsurvey", { state: { surveyId, storedEmail } });
-    
+
+    const handleEditSurvey = (surveyId) => navigate("/editsurvey", { state: { surveyId, adminEmail: decoded.sub } });
+
     const handleViewResult = (surveyId) => navigate("/adminresult", { state: { surveyId } });
 
     const handleDeleteSurvey = async (surveyId) => {
-        const success = await deleteSurvey(surveyId);
+        const success = await deleteSurvey(surveyId, token);
         if (success) {
-            setCreatedSurveys(createdSurveys.filter(survey => survey.id !== surveyId));
+            setCreatedSurveys(prev => prev.filter(survey => survey.id !== surveyId));
         }
     };
 
-    // Function to format date for display
     const formatDate = (dateString) => {
         const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', { 
-            year: 'numeric', 
-            month: 'short', 
-            day: 'numeric' 
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
         });
     };
 
-    // Function to get a random gradient for survey cards
     const getRandomGradient = (index) => {
         const gradients = [
             "from-pink-400 to-purple-500",
@@ -97,9 +84,9 @@ const AdminDashboard = () => {
                     <div className="relative group">
                         <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 rounded-full opacity-75 blur group-hover:opacity-100 transition duration-300 animate-pulse"></div>
                         <div className="relative">
-                            <img 
-                                src={logo} 
-                                alt="Admin logo" 
+                            <img
+                                src={logo}
+                                alt="Admin logo"
                                 className="w-32 h-32 rounded-full object-cover border-4 border-white"
                             />
                         </div>
@@ -129,7 +116,7 @@ const AdminDashboard = () => {
                             </div>
                         </div>
                     </div>
-                    <button 
+                    <button
                         onClick={handleLogout}
                         className="mt-auto w-full py-3 px-4 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300"
                     >

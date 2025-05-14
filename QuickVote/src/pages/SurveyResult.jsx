@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
-import axios from "axios";
+import { fetchSurveyResultsAPI, fetchUserResponsesAPI } from "../APIs/SurveyResultAPI"; // Import API functions
 import {
   BarChart,
   Bar,
@@ -14,10 +14,10 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import { 
-  FileText, FileDown, Brain, TrendingUp, 
-  AlertTriangle, CheckCircle, PieChart as PieChartIcon, 
-  BarChart as BarChartIcon 
+import {
+  FileText, FileDown, Brain, TrendingUp,
+  AlertTriangle, CheckCircle, PieChart as PieChartIcon,
+  BarChart as BarChartIcon
 } from 'lucide-react';
 
 
@@ -31,7 +31,6 @@ const SurveyResult = () => {
 
   const location = useLocation();
   const surveyId = location.state?.surveyId;
-  const email = localStorage.getItem("userEmail");
 
   useEffect(() => {
     if (!surveyId) {
@@ -39,45 +38,31 @@ const SurveyResult = () => {
       setLoading(false);
       return;
     }
-    if (!email) {
-      setError("User email is missing. Please log in again.");
-      setLoading(false);
-      return;
-    }
 
-    fetchSurveyData(surveyId);
-    fetchUserResponses(surveyId, email);
-  }, [surveyId, email]);
+    const loadSurveyResults = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const surveyResults = await fetchSurveyResultsAPI(surveyId);
+        setSurveyData(surveyResults);
+        const responses = await fetchUserResponsesAPI(surveyId);
+        setUserResponses(responses);
+      } catch (err) {
+        console.error("Error loading survey results:", err);
+        setError(err.message || "Failed to load survey results. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSurveyResults();
+  }, [surveyId]);
 
   useEffect(() => {
     if (surveyData && userResponses) {
       generateAnalysis();
     }
   }, [surveyData, userResponses]);
-
-  const fetchSurveyData = async (id) => {
-    try {
-      const response = await axios.post("http://localhost:8080/api/survey-results/results", {
-        surveyId: id,
-      });
-      setSurveyData(response.data);
-    } catch (error) {
-      setError("Failed to load survey data. Please try again.");
-    }
-    setLoading(false);
-  };
-
-  const fetchUserResponses = async (id, userEmail) => {
-    try {
-      const response = await axios.post("http://localhost:8080/api/responses/fetch", {
-        surveyId: id,
-        email: userEmail,
-      });
-      setUserResponses(response.data.responses || []);
-    } catch (error) {
-      console.error("Error fetching user responses:", error);
-    }
-  };
 
   const generateAnalysis = () => {
     if (!surveyData || !userResponses) return;
@@ -100,21 +85,21 @@ const SurveyResult = () => {
   const calculateParticipationRate = () => {
     const answeredQuestions = userResponses.length;
     const totalQuestions = surveyData.questions.length;
-    return (answeredQuestions / totalQuestions) * 100;
+    return totalQuestions > 0 ? (answeredQuestions / totalQuestions) * 100 : 0;
   };
 
   const identifyTrends = () => {
     const trends = [];
-    
+
     surveyData.questions.forEach(question => {
       const options = question.options;
       const totalVotes = options.reduce((sum, opt) => sum + opt.frequency, 0);
-      const dominantOption = options.reduce((prev, current) => 
-        (current.frequency > prev.frequency) ? current : prev
+      const dominantOption = options.reduce((prev, current) =>
+        (current.frequency > prev.frequency) ? current : prev, { frequency: 0 }
       );
-      
-      const dominanceRatio = dominantOption.frequency / totalVotes;
-      
+
+      const dominanceRatio = totalVotes > 0 ? dominantOption.frequency / totalVotes : 0;
+
       if (dominanceRatio > 0.6) {
         trends.push({
           question: question.questionText,
@@ -124,13 +109,13 @@ const SurveyResult = () => {
         });
       }
     });
-    
+
     return trends;
   };
 
   const generateInsights = () => {
     const insights = [];
-    
+
     // Participation insight
     const participationRate = calculateParticipationRate();
     if (participationRate < 50) {
@@ -144,14 +129,14 @@ const SurveyResult = () => {
     surveyData.questions.forEach(question => {
       const options = question.options;
       const totalVotes = options.reduce((sum, opt) => sum + opt.frequency, 0);
-      const frequencies = options.map(opt => opt.frequency / totalVotes);
-      
+      const frequencies = options.map(opt => totalVotes > 0 ? opt.frequency / totalVotes : 0);
+
       // Check for even distribution
-      const isEvenlyDistributed = frequencies.every(freq => 
-        Math.abs(freq - 1/options.length) < 0.1
+      const isEvenlyDistributed = frequencies.every(freq =>
+        Math.abs(freq - 1 / options.length) < 0.1
       );
-      
-      if (isEvenlyDistributed) {
+
+      if (isEvenlyDistributed && options.length > 1) {
         insights.push({
           type: 'info',
           message: `Mixed opinions on "${question.questionText}" - no clear consensus`
@@ -164,13 +149,14 @@ const SurveyResult = () => {
 
   const generateRecommendations = () => {
     const recommendations = [];
-    
+
     const participationRate = calculateParticipationRate();
-    if (participationRate < 100) {
-      const unansweredQuestions = surveyData.questions.filter(question => 
-        !userResponses.find(response => Number(response.questionId) === Number(question.questionId))
+    if (participationRate < 100 && surveyData?.questions) {
+      const answeredQuestionIds = userResponses.map(res => Number(res.questionId));
+      const unansweredQuestions = surveyData.questions.filter(question =>
+        !answeredQuestionIds.includes(Number(question.questionId))
       );
-      
+
       if (unansweredQuestions.length > 0) {
         recommendations.push({
           priority: 'high',
@@ -232,7 +218,7 @@ ${rec.details}
 
   if (loading) return <div className="loading">Loading survey results...</div>;
   if (error) return <div className="error-message">{error}</div>;
-
+  if (!surveyData) return <div>No survey data available.</div>;
   return (
     <div className="relative w-full min-h-screen bg-gradient-to-r from-blue-50 to-purple-50 overflow-hidden">
       {/* Animated Background Lights */}
@@ -558,8 +544,3 @@ ${rec.details}
 };
 
 export default SurveyResult;
-
-
-
-
-

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { submitResponse } from "../APIs/submitResponse"; 
+import { fetchQuestionsAPI, submitResponseAPI } from "../APIs/QuestionPageAPI"; // Import both API functions
 import QuestionViewer from "../Component/QuestionViewer";
 
 const QuestionPage = () => {
@@ -17,10 +17,7 @@ const QuestionPage = () => {
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
-        const response = await fetch(`http://localhost:8080/api/surveys/${surveyId}/questions`);
-        if (!response.ok) throw new Error("Failed to fetch questions");
-
-        const data = await response.json();
+        const data = await fetchQuestionsAPI(surveyId); // Use the imported API function
         setQuestionsData(data.questions);
       } catch (error) {
         console.error("Error fetching questions:", error);
@@ -40,8 +37,15 @@ const QuestionPage = () => {
     });
   };
 
-  const handleSubmit = () => {
-    submitResponse(surveyId, responses, navigate);
+  const handleSubmit = async () => {
+    try {
+      await submitResponseAPI(surveyId, responses, navigate); // Use the imported API function
+      // The navigate function is now passed to the API function
+    } catch (error) {
+      console.error("Error submitting response:", error);
+      setError(error.message);
+      // Optionally, display an error message to the user
+    }
   };
 
   if (loading) return (
@@ -52,13 +56,13 @@ const QuestionPage = () => {
       </div>
     </div>
   );
-  
+
   if (error) return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-100 to-purple-100">
       <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full border-l-4 border-red-500">
         <h3 className="text-xl font-bold text-red-700 mb-2">Error</h3>
         <p className="text-gray-700">{error}</p>
-        <button 
+        <button
           onClick={() => navigate(-1)}
           className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
         >
@@ -75,18 +79,18 @@ const QuestionPage = () => {
         <div className="absolute w-96 h-96 bg-blue-400 opacity-20 blur-3xl animate-pulse rounded-full top-0 left-0"></div>
         <div className="absolute w-full h-full bg-purple-400 opacity-30 blur-3xl animate-pulse rounded-full bottom-0 right-0"></div>
       </div>
-      
+
       <div className="relative container mx-auto px-4 sm:px-6 lg:px-8 max-w-3xl">
         <div className="bg-white backdrop-blur-sm bg-opacity-80 rounded-2xl shadow-xl p-6 sm:p-8 mb-8">
-        <div className="mb-8 relative overflow-hidden">
-  <div className="absolute inset-0 bg-blue-50 transform -skew-y-3"></div>
-  <div className="relative py-6">
-    <h2 className="text-3xl font-bold text-center text-blue-800">
-      {title || "Survey"}
-    </h2>
-    <div className="h-1 w-20 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto mt-2 rounded-full"></div>
-  </div>
-</div>
+          <div className="mb-8 relative overflow-hidden">
+            <div className="absolute inset-0 bg-blue-50 transform -skew-y-3"></div>
+            <div className="relative py-6">
+              <h2 className="text-3xl font-bold text-center text-blue-800">
+                {title || "Survey"}
+              </h2>
+              <div className="h-1 w-20 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto mt-2 rounded-full"></div>
+            </div>
+          </div>
           {questionsData.length > 0 ? (
             <QuestionViewer
               question={questionsData[currentQuestionIndex]}
@@ -106,20 +110,20 @@ const QuestionPage = () => {
             </div>
           )}
         </div>
-        
+
         {/* Progress indicator */}
         {questionsData.length > 0 && (
           <div className="flex justify-center">
             <div className="bg-white bg-opacity-60 px-4 py-2 rounded-full">
               <div className="flex space-x-1">
                 {questionsData.map((_, index) => (
-                  <div 
+                  <div
                     key={index}
                     className={`w-3 h-3 rounded-full ${
-                      index === currentQuestionIndex 
-                        ? 'bg-blue-600' 
-                        : index < currentQuestionIndex 
-                          ? 'bg-green-500' 
+                      index === currentQuestionIndex
+                        ? 'bg-blue-600'
+                        : index < currentQuestionIndex
+                          ? 'bg-green-500'
                           : 'bg-gray-300'
                     }`}
                   ></div>

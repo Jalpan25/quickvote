@@ -1,8 +1,11 @@
-export const fetchSurveysByAdmin = async (email, setAdmin, setCreatedSurveys) => {
+export const fetchSurveysByAdmin = async (email, token, setAdmin, setCreatedSurveys) => { 
     try {
         const response = await fetch("http://localhost:8080/api/surveys/fetch-by-admin", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`
+            },
             body: JSON.stringify({ adminEmail: email }),
         });
 
@@ -13,17 +16,21 @@ export const fetchSurveysByAdmin = async (email, setAdmin, setCreatedSurveys) =>
         const data = await response.json();
         setAdmin(data.admin);
         setCreatedSurveys(data.createdSurveys);
-        console.log("API Returned Admin Role:", fetchedAdmin.role);
+        console.log("API Returned Admin Role:", data.admin.role);
 
     } catch (error) {
         console.error("Error fetching surveys:", error);
     }
 };
 
-export const deleteSurvey = async (surveyId) => {
+
+export const deleteSurvey = async (surveyId, token) => {
     try {
         const response = await fetch(`http://localhost:8080/api/surveys/${surveyId}`, {
             method: "DELETE",
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
         });
 
         if (!response.ok) {
@@ -36,3 +43,4 @@ export const deleteSurvey = async (surveyId) => {
         return false;
     }
 };
+

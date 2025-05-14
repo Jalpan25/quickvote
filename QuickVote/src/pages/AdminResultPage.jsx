@@ -1,82 +1,65 @@
 import React, { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
-import axios from "axios";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, PieChart, Pie, Cell,
 } from "recharts";
 import { FileDown, Brain, TrendingUp, AlertTriangle } from 'lucide-react';
-
+import apiService, { getUserFromToken, isTokenExpired } from "../APIs/AdminResultPageAPI";
 
 const SurveyResult = () => {
   const [surveyData, setSurveyData] = useState(null);
-  const [userResponses, setUserResponses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [chartType, setChartType] = useState("bar");
   const [analysis, setAnalysis] = useState(null);
 
   const location = useLocation();
+  const navigate = useNavigate();
   const surveyId = location.state?.surveyId;
   const COLORS = ["#FF6384", "#36A2EB", "#FFCE56", "#4CAF50", "#FF9800", "#9C27B0"];
 
-
-  // Get user data from localStorage
-  const email = localStorage.getItem("adminEmail");
-  const role = localStorage.getItem("adminRole"); // 'admin' or 'participant'
+  // Get user data from JWT token
+  const userData = getUserFromToken();
 
   useEffect(() => {
+    // Check authentication first
+    if (!userData || isTokenExpired()) {
+      setError("Authentication expired. Please login again.");
+      setTimeout(() => navigate("/login"), 2000);
+      return;
+    }
+
     if (!surveyId) {
       setError("Survey ID is missing. Please go back and try again.");
       setLoading(false);
       return;
     }
 
-    fetchSurveyData(surveyId);
-
-    if (role === "participant") {
-      if (!email) {
-        setError("User email is missing. Please log in again.");
+    // Fetch required data
+    const fetchData = async () => {
+      try {
+        // Fetch survey data
+        const surveyData = await apiService.getSurveyData(surveyId);
+        setSurveyData(surveyData);
         setLoading(false);
-        return;
+      } catch (error) {
+        console.error("Error loading data:", error);
+        setError("Failed to load survey data. Please try again.");
+        setLoading(false);
       }
-      fetchUserResponses(surveyId, email);
-    } else {
-      fetchUserResponses(surveyId, null); // Admin fetches all responses
-    }
-  }, [surveyId, email, role]);
+    };
+
+    fetchData();
+  }, [surveyId, navigate]);
 
   useEffect(() => {
-    if (surveyData && userResponses) {
+    if (surveyData) {
       generateAnalysis();
     }
-  }, [surveyData, userResponses]);
-
-  const fetchSurveyData = async (id) => {
-    try {
-      const response = await axios.post("http://localhost:8080/api/survey-results/results", {
-        surveyId: id,
-      });
-      setSurveyData(response.data);
-    } catch (error) {
-      setError("Failed to load survey data. Please try again.");
-    }
-    setLoading(false);
-  };
-
-  const fetchUserResponses = async (id, userEmail) => {
-    try {
-      const requestBody = { surveyId: id };
-      if (userEmail) requestBody.email = userEmail; // Only add email if user is a participant
-
-      const response = await axios.post("http://localhost:8080/api/responses/fetch", requestBody);
-      setUserResponses(response.data.responses || []);
-    } catch (error) {
-      console.error("Error fetching user responses:", error);
-    }
-  };
+  }, [surveyData]);
 
   const generateAnalysis = () => {
-    if (!surveyData || !userResponses) return;
+    if (!surveyData) return;
 
     const analysis = {
       overview: {
@@ -94,9 +77,9 @@ const SurveyResult = () => {
   };
 
   const calculateParticipationRate = () => {
-    const answeredQuestions = userResponses.length;
-    const totalQuestions = surveyData.questions.length;
-    return (answeredQuestions / totalQuestions) * 100;
+    // For admin view, we can calculate participation rate based on total responses
+    // compared to number of questions. This is just an example - adjust as needed.
+    return surveyData.totalResponses > 0 ? 100 : 0;
   };
 
   const identifyTrends = () => {
@@ -105,6 +88,9 @@ const SurveyResult = () => {
     surveyData.questions.forEach(question => {
       const options = question.options;
       const totalVotes = options.reduce((sum, opt) => sum + opt.frequency, 0);
+      
+      if (totalVotes === 0) return;
+      
       const dominantOption = options.reduce((prev, current) =>
         (current.frequency > prev.frequency) ? current : prev
       );
@@ -127,24 +113,32 @@ const SurveyResult = () => {
   const generateInsights = () => {
     const insights = [];
 
-    const participationRate = calculateParticipationRate();
-    if (participationRate < 50) {
+    if (surveyData.totalResponses < 5) {
       insights.push({
         type: 'warning',
-        message: 'Low participation rate may affect the reliability of results'
+        message: 'Low response count may affect the reliability of results'
       });
     }
 
     surveyData.questions.forEach(question => {
       const options = question.options;
       const totalVotes = options.reduce((sum, opt) => sum + opt.frequency, 0);
+      
+      if (totalVotes === 0) {
+        insights.push({
+          type: 'warning',
+          message: `No responses for question: "${question.questionText}"`
+        });
+        return;
+      }
+      
       const frequencies = options.map(opt => opt.frequency / totalVotes);
 
       const isEvenlyDistributed = frequencies.every(freq =>
         Math.abs(freq - 1 / options.length) < 0.1
       );
 
-      if (isEvenlyDistributed) {
+      if (isEvenlyDistributed && totalVotes >= 5) {
         insights.push({
           type: 'info',
           message: `Mixed opinions on "${question.questionText}" - no clear consensus`
@@ -158,20 +152,32 @@ const SurveyResult = () => {
   const generateRecommendations = () => {
     const recommendations = [];
 
-    const participationRate = calculateParticipationRate();
-    if (participationRate < 100) {
-      const unansweredQuestions = surveyData.questions.filter(question =>
-        !userResponses.find(response => Number(response.questionId) === Number(question.questionId))
-      );
+    if (surveyData.totalResponses < 10) {
+      recommendations.push({
+        priority: 'medium',
+        action: 'Collect more responses',
+        details: 'More responses would increase the reliability of results'
+      });
+    }
 
-      if (unansweredQuestions.length > 0) {
+    // Look for questions with no clear consensus
+    surveyData.questions.forEach(question => {
+      const options = question.options;
+      const totalVotes = options.reduce((sum, opt) => sum + opt.frequency, 0);
+      
+      if (totalVotes === 0) return;
+      
+      const frequencies = options.map(opt => opt.frequency / totalVotes);
+      const highestFrequency = Math.max(...frequencies);
+      
+      if (highestFrequency < 0.4 && totalVotes >= 5) {
         recommendations.push({
-          priority: 'high',
-          action: 'Complete remaining questions',
-          details: `${unansweredQuestions.length} questions remain unanswered`
+          priority: 'low',
+          action: 'Follow up on mixed opinions',
+          details: `Question "${question.questionText}" has diverse answers and may need further investigation`
         });
       }
-    }
+    });
 
     return recommendations;
   };
@@ -230,6 +236,7 @@ ${rec.details}
         <div>
           <h1 className="text-2xl font-bold text-blue-800">{surveyData.surveyTitle}</h1>
           <p className="text-purple-700">Total Responses: {surveyData.totalResponses}</p>
+          {userData && <p className="text-blue-600">User: {userData.email} ({userData.role})</p>}
         </div>
         <button onClick={downloadReport} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
           <FileDown className="text-white" />
@@ -285,7 +292,7 @@ ${rec.details}
                 {analysis.insights.map((insight, index) => (
                   <li key={index} className={`p-3 rounded-lg ${
                     insight.type === 'positive' ? 'bg-blue-100 text-blue-800' : 
-                    insight.type === 'negative' ? 'bg-purple-100 text-purple-800' : 
+                    insight.type === 'warning' ? 'bg-orange-100 text-orange-800' : 
                     'bg-gray-100 text-gray-800'
                   }`}>
                     {insight.message}
@@ -313,12 +320,7 @@ ${rec.details}
             votes: option.frequency,
             color: COLORS[index % COLORS.length],
           }));
-  
-          const userResponse = userResponses.find(
-            (res) => Number(res.questionId) === Number(question.questionId)
-          );
-          const selectedOptionId = userResponse?.selectedOptionId;
-  
+
           return (
             <div key={question.questionId} className="bg-white bg-opacity-90 p-6 rounded-lg shadow-md">
               <h2 className="text-xl font-semibold text-blue-800 mb-4">{question.questionText}</h2>
@@ -335,7 +337,6 @@ ${rec.details}
                       <Bar dataKey="votes" fill="#8b5cf6" barSize={30} radius={[8, 8, 0, 0]} />
                     </BarChart>
                   ) : (
-                    
                     <PieChart>
                       <Pie 
                         data={chartData} 
@@ -352,7 +353,6 @@ ${rec.details}
                       </Pie>
                       <Tooltip />
                     </PieChart>
-                    
                   )}
                 </ResponsiveContainer>
               </div>

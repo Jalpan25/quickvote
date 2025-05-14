@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import QuestionComponent from "../Component/QuestionComponent";
 import { parseExcelFile } from "../utils/excelUtils";
 import { validateSurvey } from "../utils/validationSurveyUtils";
 import { createSurveyAPI } from "../APIs/createSurveyAPI";
+import { fetchFixedDomainAPI } from "../APIs/createSurveyAPI";
 import * as XLSX from 'xlsx';
-
 
 const CreateSurvey = () => {
   const location = useLocation();
@@ -14,14 +14,55 @@ const CreateSurvey = () => {
   const [title, setTitle] = useState("");
   const [questions, setQuestions] = useState([{ text: "", options: ["", ""] }]);
   const [errorMessage, setErrorMessage] = useState("");
-  const fixedDomain = location.state?.fixedDomain || localStorage.getItem("fixedDomain") || "";
+  const [fixedDomain, setFixedDomain] = useState("");
   const [endTime, setEndTime] = useState("");
   const [emailPrefix, setEmailPrefix] = useState("");
-const [emailRestrictionMode, setEmailRestrictionMode] = useState("custom"); // 'anyone' or 'custom'
-
-
+  const [emailRestrictionMode, setEmailRestrictionMode] = useState("custom"); // 'anyone' or 'custom'
   const [fileName, setFileName] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isFormComplete, setIsFormComplete] = useState(false);
+
+  // Fetch fixed domain from API
+  useEffect(() => {
+    const fetchDomain = async () => {
+      if (!adminEmail) return;
+
+      setIsLoading(true);
+      try {
+        const domain = await fetchFixedDomainAPI(adminEmail);
+        setFixedDomain(domain);
+      } catch (error) {
+        console.error("Error fetching fixed domain:", error);
+        setErrorMessage("Failed to fetch domain information. Please refresh or try again later.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDomain();
+  }, [adminEmail]);
+
+  // Update form completion status whenever form data changes
+  useEffect(() => {
+    const checkFormCompletion = () => {
+      if (!title.trim()) return false;
+      if (!endTime) return false;
+      if (emailRestrictionMode === 'custom' && !emailPrefix.trim()) return false;
+      if (!fixedDomain) return false;
+      if (questions.length === 0) return false;
+      for (const question of questions) {
+        if (!question.text.trim()) return false;
+        if (question.options.length < 2) return false;
+        for (const option of question.options) {
+          if (!option.trim()) return false;
+        }
+      }
+      return true;
+    };
+
+    setIsFormComplete(checkFormCompletion());
+  }, [title, questions, endTime, emailPrefix, emailRestrictionMode, fixedDomain]);
 
   const addQuestion = () => setQuestions([...questions, { text: "", options: ["", ""] }]);
 
@@ -66,25 +107,36 @@ const [emailRestrictionMode, setEmailRestrictionMode] = useState("custom"); // '
   };
 
   const handleSurveyCreation = async () => {
+    if (!isFormComplete) {
+      setErrorMessage("Please ensure all details are filled before creating the survey.");
+      return;
+    }
+
     const validationError = validateSurvey(title, adminEmail, questions, endTime);
     if (validationError) {
       setErrorMessage(validationError);
       return;
     }
+
+    if (!fixedDomain) {
+      setErrorMessage("Domain information is not available. Please refresh the page.");
+      return;
+    }
+
     const emailRestriction = emailRestrictionMode === 'anyone'
-    ? 'all' + fixedDomain
-    : emailPrefix + fixedDomain;
-  
-  const surveyData = {
-    adminEmail,
-    title,
-    questions,
-    emailRestriction,
-    endTime,
-  };
-  
-  
+      ? 'all' + fixedDomain
+      : emailPrefix + fixedDomain;
+
+    const surveyData = {
+      adminEmail,
+      title,
+      questions,
+      emailRestriction,
+      endTime,
+    };
+
     try {
+      setIsLoading(true);
       const response = await createSurveyAPI(surveyData);
       console.log("Survey created successfully:", response);
       // Show success message
@@ -94,10 +146,11 @@ const [emailRestrictionMode, setEmailRestrictionMode] = useState("custom"); // '
         setSuccessMessage("");
         navigate('/admindashboard');
       }, 2000);
-    }
-     catch (error) {
+    } catch (error) {
       console.error("Error storing survey:", error);
       setErrorMessage("Failed to store survey. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -146,18 +199,30 @@ const [emailRestrictionMode, setEmailRestrictionMode] = useState("custom"); // '
       <div className="max-w-4xl mx-auto my-8 p-8 bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl relative z-10">
         {/* Decorative header background */}
         <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-500 opacity-90 rounded-t-2xl"></div>
-        
+
         {/* Page title */}
         <div className="relative mb-12 pt-4">
           <h2 className="text-3xl font-bold text-center text-white mb-1">
             Create a Survey
           </h2>
-          
+
           {/* Decorative elements */}
           <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2">
             <div className="w-16 h-1 bg-white rounded-full opacity-70"></div>
           </div>
         </div>
+
+        {/* Loading indicator */}
+        {isLoading && (
+          <div className="p-4 mb-6 bg-blue-50 border-l-4 border-blue-500 rounded-lg flex items-center animate-pulse">
+            <div className="mr-3 text-blue-500">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </div>
+            <span className="text-blue-700">Loading...</span>
+          </div>
+        )}
 
         {/* Success Message */}
         {successMessage && (
@@ -183,7 +248,7 @@ const [emailRestrictionMode, setEmailRestrictionMode] = useState("custom"); // '
                 </svg>
                 <span className="font-semibold">Need a template?</span>
               </div>
-              <button 
+              <button
                 onClick={downloadDemoExcel}
                 className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 cursor-pointer transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 active:translate-y-0 flex items-center"
               >
@@ -193,7 +258,7 @@ const [emailRestrictionMode, setEmailRestrictionMode] = useState("custom"); // '
                 Download Demo Excel
               </button>
             </div>
-            
+
             {/* File Upload Section */}
             <div className="flex flex-wrap items-center gap-4 pt-2">
               <div className="flex items-center text-blue-800">
@@ -228,7 +293,7 @@ const [emailRestrictionMode, setEmailRestrictionMode] = useState("custom"); // '
                 </div>
               </div>
             </div>
-            
+
             {/* Help text */}
             <div className="mt-2 text-sm text-gray-600 flex items-start">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-blue-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -301,72 +366,76 @@ const [emailRestrictionMode, setEmailRestrictionMode] = useState("custom"); // '
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Enter a catchy title for your survey"
-              className="w-full px-4 py-3 border-2 border-blue-200 rounded-lg 
-                        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                        bg-white shadow-sm transition-all duration-200
-                        text-gray-800 placeholder-gray-400"
+              className="w-full px-4 py-3 border-2 border-blue-200 rounded-lg
+                             focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                             bg-white shadow-sm transition-all duration-200
+                             text-gray-800 placeholder-gray-400"
             />
           </div>
 
-    {/* Email Restriction */}
-    <div className="mb-6">
-  <label className="block font-semibold mb-2 text-gray-800 flex items-center">
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
-    </svg>
-    Allowed Email Domain:
-  </label>
+          {/* Email Restriction */}
+          <div className="mb-6">
+            <label className="block font-semibold mb-2 text-gray-800 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+              </svg>
+              Allowed Email Domain:
+            </label>
 
-  <div className="flex flex-col mt-2 space-y-2">
-    <label className="flex items-center space-x-2">
-      <input
-        type="radio"
-        value="custom"
-        checked={emailRestrictionMode === "custom"}
-        onChange={() => setEmailRestrictionMode("custom")}
-      />
-      <span className="text-gray-700">Custom Email Prefix</span>
-    </label>
+            <div className="flex flex-col mt-2 space-y-2">
+              <label className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  value="custom"
+                  checked={emailRestrictionMode === "custom"}
+                  onChange={() => setEmailRestrictionMode("custom")}
+                />
+                <span className="text-gray-700">Custom Email Prefix</span>
+              </label>
 
-    {emailRestrictionMode === "custom" && (
-      <div className="flex">
-        <input
-          type="text"
-          placeholder="Enter email prefix like 22ituos***"
-          value={emailPrefix}
-          onChange={(e) => setEmailPrefix(e.target.value)}
-          className="flex-1 px-4 py-3 border-2 border-blue-200 rounded-l-lg 
-                    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                    bg-white shadow-sm transition-all duration-200
-                    text-gray-800 placeholder-gray-400"
-        />
-        <span className="bg-blue-700 text-white px-4 py-3 text-center rounded-r-lg border-2 border-blue-700 font-medium min-w-[120px]">
-          {fixedDomain}
-        </span>
-      </div>
-    )}
+              {emailRestrictionMode === "custom" && (
+                <div className="flex">
+                  <input
+                    type="text"
+                    placeholder="Enter email prefix like 22ituos***"
+                    value={emailPrefix}
+                    onChange={(e) => setEmailPrefix(e.target.value)}
+                    className="flex-1 px-4 py-3 border-2 border-blue-200 rounded-l-lg
+                                      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                                      bg-white shadow-sm transition-all duration-200
+                                      text-gray-800 placeholder-gray-400"
+                  />
+                  <span className="bg-blue-700 text-white px-4 py-3 text-center rounded-r-lg border-2 border-blue-700 font-medium min-w-[120px]">
+                    {fixedDomain || "...loading"}
+                  </span>
+                </div>
+              )}
 
-    <label className="flex items-center space-x-2">
-      <input
-        type="radio"
-        value="anyone"
-        checked={emailRestrictionMode === "anyone"}
-        onChange={() => setEmailRestrictionMode("anyone")}
-      />
-      <span className="text-gray-700">Anyone with domain <strong className="text-blue-700">{fixedDomain}</strong></span>
-    </label>
-  </div>
+              <label className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  value="anyone"
+                  checked={emailRestrictionMode === "anyone"}
+                  onChange={() => setEmailRestrictionMode("anyone")}
+                />
+                <span className="text-gray-700">
+                  Anyone with domain <strong className="text-blue-700">{fixedDomain || "...loading"}</strong>
+                </span>
+              </label>
+            </div>
 
-  <p className="mt-3 text-sm flex items-center">
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-    <span className="text-purple-700 font-medium">Your email restriction is:</span>
-    <strong className="ml-2 text-blue-700 font-medium border-b border-dotted border-blue-500 pb-0.5">
-      {emailRestrictionMode === "anyone" ? "all" : emailPrefix || "emailprefix"}{fixedDomain}
-    </strong>
-  </p>
-</div>
+            <p className="mt-3 text-sm flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="text-purple-700 font-medium">Your email restriction is:</span>
+              <strong className="ml-2 text-blue-700 font-medium border-b border-dotted border-blue-500 pb-0.5">
+                {emailRestrictionMode === "anyone" ? "all" : emailPrefix || "emailprefix"}
+                {fixedDomain || "...loading"}
+              </strong>
+            </p>
+          </div>
+
           {/* End Time */}
           <div className="mb-8 relative">
             <label className="block font-semibold mb-2 text-gray-800 flex items-center">
@@ -379,27 +448,38 @@ const [emailRestrictionMode, setEmailRestrictionMode] = useState("custom"); // '
               type="datetime-local"
               value={endTime}
               onChange={(e) => setEndTime(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-blue-200 rounded-lg 
-                        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                        bg-white shadow-sm transition-all duration-200
-                        text-gray-800"
+              className="w-full px-4 py-3 border-2 border-blue-200 rounded-lg
+                             focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                             bg-white shadow-sm transition-all duration-200
+                             text-gray-800"
             />
           </div>
 
           {/* Submit Button */}
-          <button 
-            onClick={handleSurveyCreation} 
-            className="w-full p-4 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-600 text-white rounded-xl 
-                      font-bold text-lg shadow-lg hover:shadow-xl 
-                      transform transition-all duration-300 hover:-translate-y-1 
-                      active:translate-y-0 focus:outline-none 
-                      focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
-                      flex items-center justify-center"
+          <button
+            onClick={handleSurveyCreation}
+            disabled={isLoading || !fixedDomain || !isFormComplete}
+            className={`w-full p-4 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-600 text-white rounded-xl
+                              font-bold text-lg shadow-lg
+                              transform transition-all duration-300
+                              flex items-center justify-center
+                              ${isLoading || !fixedDomain || !isFormComplete ? 'opacity-70 cursor-not-allowed' : 'hover:shadow-xl hover:-translate-y-1 active:translate-y-0'}`}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Create Survey
+            {isLoading ? (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Processing...
+              </>
+            ) : (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Create Survey
+              </>
+            )}
           </button>
         </div>
       </div>

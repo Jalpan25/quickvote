@@ -1,58 +1,77 @@
-import React, { useState, useEffect } from "react"; 
+import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import * as XLSX from "xlsx";
 import QuestionComponent from "../Component/QuestionComponent";
 import { parseExcelFile } from "../utils/excelUtils";
+import { fetchSurveyAPI, updateSurveyAPI, fetchFixedDomainAPI } from "../APIs/EditSurveyAPI"; // Import your API functions
 
 const SurveyComponent = () => {
   const location = useLocation();
-  
-  const adminEmail = location.state?.adminEmail || localStorage.getItem("adminEmail") || "";
+
+  const adminEmail = location.state?.adminEmail || "";
   const surveyId = location.state?.surveyId || "";
 
   const [title, setTitle] = useState("");
   const [questions, setQuestions] = useState([{ text: "", options: ["", ""] }]);
   const [errorMessage, setErrorMessage] = useState("");
   const [emailPrefix, setEmailPrefix] = useState("");
-  const [emailRestrictionMode, setEmailRestrictionMode] = useState("custom"); // Default to custom
-   // 'anyone' or 'custom'
-  
+  const [emailRestrictionMode, setEmailRestrictionMode] = useState("custom"); // 'anyone' or 'custom'
+
   const [endTime, setEndTime] = useState("");
   const [fileName, setFileName] = useState("");
-  
-  const fixedDomain = location.state?.fixedDomain || localStorage.getItem("fixedDomain") || "";
-  const [successMessage, setSuccessMessage] = useState("");
 
+  const [fixedDomain, setFixedDomain] = useState(location.state?.fixedDomain || "");
+  const [successMessage, setSuccessMessage] = useState("");
+   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (surveyId) {
-      fetch(`http://localhost:8080/api/surveys/${surveyId}`)
-        .then((response) => response.json())
-        .then((data) => {
-          setTitle(data.title || "");
-          setQuestions(data.questions || [{ text: "", options: ["", ""] }]);
-          setEndTime(data.endTime || "");
-  
-          const restriction = data.emailRestriction;
-          if (restriction) {
-            const [prefix, domain] = restriction.split("@");
-            if (prefix === "all") {
-              setEmailRestrictionMode("anyone");
-              setEmailPrefix(""); // Clear if it was previously set
-            } else {
-              setEmailRestrictionMode("custom");
-              setEmailPrefix(prefix);
-            }
+  if (surveyId) {
+    setIsLoading(true);
+    fetchSurveyAPI(surveyId)
+      .then((data) => {
+        setTitle(data.title || "");
+        setQuestions(data.questions || [{ text: "", options: ["", ""] }]);
+        setEndTime(data.endTime || "");
+
+        const restriction = data.emailRestriction;
+        if (restriction) {
+          const [prefix, domain] = restriction.split("@");
+          if (prefix === "all") {
+            setEmailRestrictionMode("anyone");
+            setEmailPrefix("");
+          } else {
+            setEmailRestrictionMode("custom");
+            setEmailPrefix(prefix);
           }
-        })
-        .catch((error) => {
-          console.error("Error fetching survey data:", error);
-          setErrorMessage("Failed to load survey data.");
-        });
+          // Remove the check for !fixedDomain here
+          if (domain) {
+            setFixedDomain(domain); // Temporarily set, will be overridden by API call if needed
+          }
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching survey data:", error);
+        setErrorMessage("Failed to load survey data.");
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+
+    // Always fetch fixed domain if adminEmail is present
+    if (adminEmail) {
+      fetchFixedDomainAPI(adminEmail)
+        .then((domain) => setFixedDomain(domain))
+        .catch((error) => console.error("Error fetching fixed domain:", error));
     }
-  }, [surveyId]);
-  
-  
+  } else {
+    // Fetch fixed domain if adminEmail is present (for new surveys)
+    if (adminEmail) {
+      fetchFixedDomainAPI(adminEmail)
+        .then((domain) => setFixedDomain(domain))
+        .catch((error) => console.error("Error fetching fixed domain:", error));
+    }
+  }
+}, [surveyId, adminEmail]);
 
   const updateQuestion = (index, text) => {
     const updatedQuestions = [...questions];
@@ -97,8 +116,6 @@ const SurveyComponent = () => {
     }
   };
 
-  
-
   const validateSurvey = () => {
     if (!title.trim()) return "Survey title is required.";
     if (!adminEmail.trim()) return "Admin email is required.";
@@ -111,8 +128,7 @@ const SurveyComponent = () => {
     return null;
   };
 
-  const updateSurvey = async () => 
-    {
+  const updateSurvey = async () => {
     if (!surveyId) {
       alert("Survey ID is required for updating.");
       return;
@@ -134,74 +150,60 @@ const SurveyComponent = () => {
     const surveyData = {
       adminEmail,
       emailRestriction:
-      emailRestrictionMode === "anyone"
-        ? "all" + fixedDomain
-        : emailPrefix + fixedDomain,
-    
-    
-    
-
+        emailRestrictionMode === "anyone"
+          ? "all" + fixedDomain
+          : emailPrefix + fixedDomain,
       endTime,
       title,
       questions: formattedQuestions,
     };
 
     try {
-      const response = await fetch(`http://localhost:8080/api/surveys/${surveyId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(surveyData),
-      });
-
-      if (!response.ok) {
-        const errorResponse = await response.json();
-        console.error("Error updating survey:", errorResponse);
-        alert("Failed to update survey. Check console for details.");
-        return;
-      }
-
-      const result = await response.json();
+      const result = await updateSurveyAPI(surveyId, surveyData); // Use the imported API function
       console.log("Survey successfully updated:", result);
       alert("Survey updated successfully!");
+      setSuccessMessage("Survey updated successfully!"); // Set success message
+      // Optionally, you can redirect the user or perform other actions upon success
     } catch (error) {
-      console.error("Network error:", error);
-      alert("An error occurred while updating the survey. Check your connection.");
+      console.error("Error updating survey:", error);
+      alert(`Failed to update survey: ${error.message}`);
+      setErrorMessage(`Failed to update survey: ${error.message}`);
     }
   };
 
-    const handleExcelUpload = (event) => {
-      parseExcelFile(event.target.files[0], setQuestions, setFileName);
-      event.target.value = "";
-    };
-  
-    // Function to generate and download demo Excel template
-    const downloadDemoExcel = () => {
-      // Create worksheet with headers and sample data
-      const ws = XLSX.utils.aoa_to_sheet([
-        ['Question No', 'Question', 'Option 1', 'Option 2', 'Option 3', 'Option 4'],
-        [1, 'What is your favorite color?', 'Red', 'Blue', 'Green', 'Yellow'],
-        [2, 'How satisfied are you with our service?', 'Very Satisfied', 'Satisfied', 'Neutral', 'Dissatisfied'],
-        [3, 'Which feature would you like to see next?', 'Dark Mode', 'Mobile App', 'More Templates', 'Integration Options']
-      ]);
-  
-      // Set column widths
-      const wscols = [
-        { wch: 12 }, // Question No
-        { wch: 40 }, // Question
-        { wch: 25 }, // Option 1
-        { wch: 25 }, // Option 2
-        { wch: 25 }, // Option 3
-        { wch: 25 }  // Option 4
-      ];
-      ws['!cols'] = wscols;
-  
-      // Create workbook and add the worksheet
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Survey Questions");
-  
-      // Generate and download the file
-      XLSX.writeFile(wb, "survey_questions_template.xlsx");
-    };
+  const handleExcelUpload = (event) => {
+    parseExcelFile(event.target.files[0], setQuestions, setFileName);
+    event.target.value = "";
+  };
+
+  // Function to generate and download demo Excel template
+  const downloadDemoExcel = () => {
+    // Create worksheet with headers and sample data
+    const ws = XLSX.utils.aoa_to_sheet([
+      ['Question No', 'Question', 'Option 1', 'Option 2', 'Option 3', 'Option 4'],
+      [1, 'What is your favorite color?', 'Red', 'Blue', 'Green', 'Yellow'],
+      [2, 'How satisfied are you with our service?', 'Very Satisfied', 'Satisfied', 'Neutral', 'Dissatisfied'],
+      [3, 'Which feature would you like to see next?', 'Dark Mode', 'Mobile App', 'More Templates', 'Integration Options']
+    ]);
+
+    // Set column widths
+    const wscols = [
+      { wch: 12 }, // Question No
+      { wch: 40 }, // Question
+      { wch: 25 }, // Option 1
+      { wch: 25 }, // Option 2
+      { wch: 25 }, // Option 3
+      { wch: 25 }  // Option 4
+    ];
+    ws['!cols'] = wscols;
+
+    // Create workbook and add the worksheet
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Survey Questions");
+
+    // Generate and download the file
+    XLSX.writeFile(wb, "survey_questions_template.xlsx");
+  };
 
     return (
       <div className="relative w-full py-12 bg-gradient-to-r from-blue-100 to-purple-100 overflow-hidden">
@@ -479,7 +481,3 @@ const SurveyComponent = () => {
 };
 
 export default SurveyComponent;
-
-
-
-

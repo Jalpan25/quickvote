@@ -6,7 +6,8 @@ import OtpPopup from "../Component/LoginPage/OtpPopup";
 import BackgroundAnimation from "../Component/LoginPage/BackgroundAnimation";
 import LoginBanner from "../Component/LoginPage/LoginBanner";
 import useCountdown from "../Component/LoginPage/useCountdown";
-
+// import jwtDecode from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 import { sendOtp, verifyOtp } from "../APIs/authAPI";
 
 const LoginPage = () => {
@@ -51,23 +52,29 @@ const LoginPage = () => {
   };
 
   const handleLogin = async (e) => {
-    e.preventDefault();
-    if (otp.length !== 6) {
-      setError("Please enter a 6-digit code");
-      return;
-    }
+  e.preventDefault();
+  if (otp.length !== 6) {
+    setError("Please enter a 6-digit code");
+    return;
+  }
 
-    setIsLoading(true);
-    const response = await verifyOtp(email, otp);
-    if (response.success) {
-      localStorage.setItem("userEmail", email);
-      navigate("/dashboard");
-    } else {
-      setError(response.message);
-      setOtp("");
-    }
-    setIsLoading(false);
-  };
+  setIsLoading(true);
+  const response = await verifyOtp(email, otp);
+  if (response.success) {
+    const token = response.token;
+    localStorage.setItem("token", token); // ✅ Store token only
+
+    const decoded = jwtDecode(token);
+    console.log("Logged in as:", decoded.sub); // You can use decoded.sub when needed
+
+    navigate("/dashboard");
+  } else {
+    setError(response.message);
+    setOtp("");
+  }
+  setIsLoading(false);
+};
+
 
   const handleClosePopup = () => {
     setIsPopupVisible(false);

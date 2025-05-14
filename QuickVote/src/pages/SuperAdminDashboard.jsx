@@ -1,56 +1,61 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import superAdminImage from '../assets/user.png';
+
+// Import API functions
+import { 
+  getSuperAdminData, 
+  fetchPendingAdmins,
+  fetchApprovedAdmins,
+  processAdminRequest,
+  verifySuperAdmin
+} from '../APIs/SuperAdminDashboardAPI';
 
 const SuperAdminDashboard = () => {
   const [pendingAdmins, setPendingAdmins] = useState([]);
   const [approvedAdmins, setApprovedAdmins] = useState([]);
-  const superAdminEmail = localStorage.getItem("superAdminEmail");
+  const [adminData, setAdminData] = useState({ email: "", role: "" });
   const navigate = useNavigate();
 
-  const adminData = {
-    email: superAdminEmail || "superadmin@example.com",
-    role: "Super Admin",
-  };
-
   useEffect(() => {
-    fetchPendingAdmins();
-    fetchApprovedAdmins();
-  }, []);
+    // Check if user is a super admin
+    if (!verifySuperAdmin()) {
+      navigate("/login");
+      return;
+    }
+
+    // Get admin data from token
+    const data = getSuperAdminData();
+    if (data) {
+      setAdminData(data);
+    }
+
+    // Fetch admin data
+    loadAdminData();
+  }, [navigate]);
+
+  const loadAdminData = async () => {
+    try {
+      const pendingData = await fetchPendingAdmins();
+      const approvedData = await fetchApprovedAdmins();
+      
+      setPendingAdmins(pendingData);
+      setApprovedAdmins(approvedData);
+    } catch (error) {
+      console.error("Error loading admin data:", error);
+    }
+  };
 
   const handleLogout = () => {
-    localStorage.removeItem("superAdminEmail");
-    localStorage.removeItem("superAdminRole");
+    localStorage.removeItem("token");
     navigate("/login");
-  };
-
-  const fetchPendingAdmins = async () => {
-    try {
-      const response = await axios.get("http://localhost:8080/api/admins/pending");
-      setPendingAdmins(response.data);
-    } catch (error) {
-      console.error("Error fetching pending admins:", error);
-    }
-  };
-
-  const fetchApprovedAdmins = async () => {
-    try {
-      const response = await axios.get("http://localhost:8080/api/admins/approved");
-      setApprovedAdmins(response.data);
-    } catch (error) {
-      console.error("Error fetching approved admins:", error);
-    }
   };
 
   const handleAction = async (email, status) => {
     try {
-      await axios.post("http://localhost:8080/api/admins/process", {
-        email,
-        status,
-      });
-      fetchPendingAdmins();
-      fetchApprovedAdmins();
+      await processAdminRequest(email, status);
+      // Reload admin data after action
+      loadAdminData();
     } catch (error) {
       console.error(`Error ${status} admin:`, error);
     }

@@ -1,5 +1,4 @@
 package com.example.QuickVote.controller;
-
 import com.example.QuickVote.dto.LoginRequestDTO;
 import com.example.QuickVote.dto.AdminRequestDTO;
 import com.example.QuickVote.dto.PendingAdminResponseDTO;
@@ -9,6 +8,7 @@ import com.example.QuickVote.service.AdminService;
 import com.example.QuickVote.service.JwtService;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -39,6 +39,14 @@ public class AdminController {
     // ✅ Admin Signup Request
     @PostMapping("/register")
     public ResponseEntity<Map<String, String>> createAdmin(@RequestBody AdminRequestDTO adminRequestDTO) {
+        Optional<Admin> existingAdmin = adminService.findByEmail(adminRequestDTO.getEmail());
+
+        if (existingAdmin.isPresent()) {
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "An admin with this email already exists.");
+            return new ResponseEntity<>(response, HttpStatus.CONFLICT); // Use HTTP 409 Conflict
+        }
+
         adminService.createAdmin(adminRequestDTO);
         Map<String, String> response = new HashMap<>();
         response.put("message", "Your request to become an admin has been received.");

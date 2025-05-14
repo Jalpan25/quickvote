@@ -32,6 +32,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .csrf(csrf -> csrf.disable())
+                .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
                         // 🔓 Public endpoints (permitAll)
                         .requestMatchers(
@@ -45,8 +46,7 @@ public class SecurityConfig {
                         // 🔐 SuperAdmin-only endpoints
                         .requestMatchers(
                                 "/api/admins/approved",
-                                "/api/admins/process",
-                                "/api/admins/getFixedDomain"
+                                "/api/admins/process"
                         ).hasRole("SUPERADMIN")
 
                         // 🔐 User & Admin access
@@ -55,6 +55,7 @@ public class SecurityConfig {
 
                         // 🔐 Admin-only access
                         .requestMatchers("/api/surveys/fetch-by-admin").hasRole("ADMIN")
+                        .requestMatchers("/api/admins/getFixedDomain").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/surveys").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/surveys/{id}").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/surveys/{id}").hasRole("ADMIN")

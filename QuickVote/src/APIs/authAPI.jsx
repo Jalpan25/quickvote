@@ -1,8 +1,7 @@
 import axios from "axios";
 
-const API_BASE_URL = "http://localhost:8080/auth"; // Backend API base URL
+const API_BASE_URL = "http://localhost:8080/auth";
 
-// Send OTP
 export const sendOtp = async (email) => {
   try {
     await axios.post(`${API_BASE_URL}/send-otp`, { email }, {
@@ -14,11 +13,14 @@ export const sendOtp = async (email) => {
   }
 };
 
-// Verify OTP
 export const verifyOtp = async (email, otp) => {
   try {
-    await axios.post(`${API_BASE_URL}/verify-otp`, { email, otp });
-    return { success: true };
+    const response = await axios.post(`${API_BASE_URL}/verify-otp`, { email, otp }, {
+      headers: { "Content-Type": "application/json" }
+    });
+
+    const token = response.data.token;
+    return { success: true, token };
   } catch (error) {
     return { success: false, message: "Invalid verification code. Please try again." };
   }

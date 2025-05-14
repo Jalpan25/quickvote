@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { jwtDecode } from "jwt-decode";
 import logo from '../Assets/user.png';
 import { getTimeLeft } from '../utils/timeUtils.jsx';
 import { fetchSurveysByEmail } from '../APIs/FetchSurveysByEmail.jsx';
@@ -11,37 +12,44 @@ const Dashboard = () => {
     const currentTime = new Date();
 
     useEffect(() => {
-        const storedEmail = localStorage.getItem("userEmail");
-        if (storedEmail) {
-            setUserEmail(storedEmail);
-            fetchSurveysByEmail(storedEmail).then(setSurveys);
+        const token = localStorage.getItem("token");
+        if (!token) {
+            navigate("/"); // Redirect to login if token is missing
+            return;
         }
-    }, []);
+
+        try {
+            const decodedToken = jwtDecode(token);
+            const email = decodedToken.sub || decodedToken.email; // Adjust based on your token claims
+            setUserEmail(email);
+
+            fetchSurveysByEmail(email, token).then(setSurveys);
+        } catch (err) {
+            console.error("Invalid token", err);
+            localStorage.removeItem("token");
+            navigate("/");
+        }
+    }, [navigate]);
 
     const handleLogout = () => {
-        localStorage.clear();
+        localStorage.removeItem("token");
         navigate('/');
     };
 
     const handleNavigate = (id, title, attempted) => {
-        console.log("Navigating with:", { surveyId: id, title, attempted }); // Debugging
         navigate(attempted ? '/surveyResult' : '/questionpage', { state: { surveyId: id, title } });
     };
 
     const ongoingSurveys = surveys.filter(survey => new Date(survey.endTime) > currentTime);
     const previousSurveys = surveys.filter(survey => new Date(survey.endTime) <= currentTime);
-    
-    // Sort ongoing surveys to prioritize unattempted ones
+
     const sortedOngoingSurveys = [...ongoingSurveys].sort((a, b) => {
-        // First priority: unattempted surveys (attempted = false)
         if (a.attempted !== b.attempted) {
-            return a.attempted ? 1 : -1; // Unattempted first
+            return a.attempted ? 1 : -1;
         }
-        // Second priority: sort by end time (most urgent first)
         return new Date(a.endTime) - new Date(b.endTime);
     });
 
-    // Get random gradient for cards
     const getRandomGradient = (attempted) => {
         const gradients = attempted ? [
             'from-emerald-400 to-teal-500',
@@ -54,10 +62,8 @@ const Dashboard = () => {
             'from-pink-400 to-rose-500',
             'from-fuchsia-400 to-purple-500'
         ];
-        
         return gradients[Math.floor(Math.random() * gradients.length)];
     };
-
     return (
         <div className="flex min-h-screen bg-gradient-to-br from-violet-50 via-indigo-50 to-sky-50">
             {/* Sidebar */}

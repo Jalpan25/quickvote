@@ -144,49 +144,74 @@ const RegistrationForm = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  setIsLoading(true);
+  setServerMessage(null); // Clear previous messages
 
-    if (formData.password !== formData.confirmPassword) {
-      setErrors(prev => ({
-        ...prev,
-        confirmPassword: ["Passwords do not match"],
-      }));
-      setIsLoading(false);
-      return;
-    }
+  if (formData.password !== formData.confirmPassword) {
+    setErrors(prev => ({
+      ...prev,
+      confirmPassword: ["Passwords do not match"],
+    }));
+    setIsLoading(false);
+    return;
+  }
 
-    const dataToSend = {
-      institutionName: formData.institutionName,
-      email: formData.email,
-      phoneNumber: formData.phoneNumber,
-      password: formData.password,
-      fixedDomain: formData.fixedDomain,
-    };
-
-    console.log("Submitting data:", dataToSend);
-
-    try {
-      const result = await registerUser(dataToSend);
-      setServerMessage(result.message);
-      console.log("Response from server:", result);
-      
-      // If registration successful, show success message before redirecting
-      if (!result.message.includes("error")) {
-        setTimeout(() => {
-          navigate("/login");
-        }, 3000);
-      }
-    } catch (error) {
-      console.error("Error submitting form:", error);
-      // Log more details about the error
-      console.error("Error details:", error.response?.data || error.message);
-      setServerMessage("An error occurred. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
+  const dataToSend = {
+    institutionName: formData.institutionName,
+    email: formData.email,
+    phoneNumber: formData.phoneNumber,
+    password: formData.password,
+    fixedDomain: formData.fixedDomain,
   };
+
+  console.log("Submitting data:", dataToSend);
+
+  try {
+    const response = await fetch("http://localhost:8080/api/admins/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(dataToSend),
+    });
+
+    const result = await response.json(); // Parse JSON response
+
+    if (response.status === 409) {
+      // Conflict: Admin with this email already exists
+      setServerMessage(result.message);
+    } else if (!response.ok) {
+      // Handle specific server errors based on status code or message
+      let errorMessage = "Registration failed.";
+      if (result && result.message) {
+        errorMessage = result.message;
+      } else {
+        errorMessage += ` Server responded with status: ${response.status}`;
+      }
+      setServerMessage(errorMessage);
+    } else {
+      // Registration successful
+      setServerMessage(result.message);
+      setTimeout(() => {
+        navigate("/login");
+      }, 3000);
+    }
+  } catch (error) {
+    console.error("Error submitting form:", error);
+    console.error("Error details:", error.response?.data || error.message);
+    let userFriendlyError = "An error occurred during registration. Please check your network connection and try again.";
+    if (error.message.includes("Failed to fetch")) {
+      userFriendlyError = "Failed to connect to the server. Please check your internet connection.";
+    } else if (error.message.includes("JSON")) {
+      userFriendlyError = "An admin with this email already exists.";
+    }
+    setServerMessage(userFriendlyError);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const navigateToLogin = () => {
     navigate("/login");
