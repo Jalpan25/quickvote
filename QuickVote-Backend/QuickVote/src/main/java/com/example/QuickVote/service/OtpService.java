@@ -2,9 +2,12 @@ package com.example.QuickVote.service;
 
 import com.example.QuickVote.model.Otp;
 import com.example.QuickVote.repository.OtpRepository;
+import com.example.QuickVote.util.EmailTemplates;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -40,11 +43,26 @@ public class OtpService {
     }
 
     private void sendOtpEmail(String email, String otp) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(email);
-        message.setSubject("Your OTP Code");
-        message.setText("Your OTP is: " + otp);
-        mailSender.send(message);
+        try {
+            // Create a MIME message
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+
+            helper.setTo(email);
+            helper.setSubject("Your QuickVote Verification Code");
+
+            // Get the email template from the EmailTemplates utility class
+            String htmlContent = EmailTemplates.getOtpEmailTemplate(otp);
+
+            helper.setText(htmlContent, true); // Set to HTML format
+
+            // Send the email
+            mailSender.send(mimeMessage);
+
+        } catch (MessagingException e) {
+            // Log the exception or handle it appropriately
+            e.printStackTrace();
+        }
     }
 
     public boolean verifyOtp(String email, String enteredOtp) {
