@@ -15,63 +15,72 @@ const SurveyComponent = () => {
   const [questions, setQuestions] = useState([{ text: "", options: ["", ""] }]);
   const [errorMessage, setErrorMessage] = useState("");
   const [emailPrefix, setEmailPrefix] = useState("");
-  const [emailRestrictionMode, setEmailRestrictionMode] = useState("custom"); // 'anyone' or 'custom'
+  const [emailRestrictionMode, setEmailRestrictionMode] = useState("custom");
 
   const [endTime, setEndTime] = useState("");
   const [fileName, setFileName] = useState("");
 
   const [fixedDomain, setFixedDomain] = useState(location.state?.fixedDomain || "");
   const [successMessage, setSuccessMessage] = useState("");
-   const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-  if (surveyId) {
-    setIsLoading(true);
-    fetchSurveyAPI(surveyId)
-      .then((data) => {
-        setTitle(data.title || "");
-        setQuestions(data.questions || [{ text: "", options: ["", ""] }]);
-        setEndTime(data.endTime || "");
+    if (surveyId) {
+      setIsLoading(true);
+      fetchSurveyAPI(surveyId)
+        .then((data) => {
+          setTitle(data.title || "");
+          setQuestions(data.questions || [{ text: "", options: ["", ""] }]);
+          setEndTime(data.endTime || "");
 
-        const restriction = data.emailRestriction;
-        if (restriction) {
-          const [prefix, domain] = restriction.split("@");
-          if (prefix === "all") {
-            setEmailRestrictionMode("anyone");
-            setEmailPrefix("");
-          } else {
-            setEmailRestrictionMode("custom");
-            setEmailPrefix(prefix);
-          }
-          // Remove the check for !fixedDomain here
-          if (domain) {
-            setFixedDomain(domain); // Temporarily set, will be overridden by API call if needed
-          }
-        }
-      })
-      .catch((error) => {
-        console.error("Error fetching survey data:", error);
-        setErrorMessage("Failed to load survey data.");
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
+          const restriction = data.emailRestriction;
+          if (restriction) {
+            const [prefix, domain] = restriction.split("@");
+            if (prefix === "all") {
+              setEmailRestrictionMode("anyone");
+              setEmailPrefix("");
+            } else {
+              setEmailRestrictionMode("custom");
+              setEmailPrefix(prefix);
+            }
 
-    // Always fetch fixed domain if adminEmail is present
-    if (adminEmail) {
-      fetchFixedDomainAPI(adminEmail)
-        .then((domain) => setFixedDomain(domain))
-        .catch((error) => console.error("Error fetching fixed domain:", error));
+            if (domain) {
+              setFixedDomain("@" + domain); // ✅ Ensure @ is prefixed
+            }
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching survey data:", error);
+          setErrorMessage("Failed to load survey data.");
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+
+      // Always fetch latest fixed domain
+      if (adminEmail) {
+        fetchFixedDomainAPI(adminEmail)
+          .then((domain) => {
+            const safeDomain = domain.startsWith("@") ? domain : "@" + domain; // ✅ Safe check
+            setFixedDomain(safeDomain);
+          })
+          .catch((error) =>
+            console.error("Error fetching fixed domain:", error)
+          );
+      }
+    } else {
+      if (adminEmail) {
+        fetchFixedDomainAPI(adminEmail)
+          .then((domain) => {
+            const safeDomain = domain.startsWith("@") ? domain : "@" + domain;
+            setFixedDomain(safeDomain);
+          })
+          .catch((error) =>
+            console.error("Error fetching fixed domain:", error)
+          );
+      }
     }
-  } else {
-    // Fetch fixed domain if adminEmail is present (for new surveys)
-    if (adminEmail) {
-      fetchFixedDomainAPI(adminEmail)
-        .then((domain) => setFixedDomain(domain))
-        .catch((error) => console.error("Error fetching fixed domain:", error));
-    }
-  }
-}, [surveyId, adminEmail]);
+  }, [surveyId, adminEmail]);
 
   const updateQuestion = (index, text) => {
     const updatedQuestions = [...questions];
@@ -89,6 +98,7 @@ const SurveyComponent = () => {
       setErrorMessage("At least one question must be present.");
     }
   };
+
   const addQuestion = () => {
     setQuestions([...questions, { text: "", options: ["", ""] }]);
   };
@@ -121,8 +131,10 @@ const SurveyComponent = () => {
     if (!adminEmail.trim()) return "Admin email is required.";
     for (const question of questions) {
       if (!question.text.trim()) return "All questions must have text.";
-      if (question.options.length < 2) return "Each question must have at least two options.";
-      if (question.options.some((option) => !option.trim())) return "No option can be empty.";
+      if (question.options.length < 2)
+        return "Each question must have at least two options.";
+      if (question.options.some((option) => !option.trim()))
+        return "No option can be empty.";
     }
     if (!endTime.trim()) return "End time is required.";
     return null;
@@ -147,30 +159,32 @@ const SurveyComponent = () => {
       options: question.options,
     }));
 
+    const safeFixedDomain = fixedDomain.startsWith("@")
+      ? fixedDomain
+      : "@" + fixedDomain; // ✅ Defensive check
+
     const surveyData = {
       adminEmail,
       emailRestriction:
         emailRestrictionMode === "anyone"
-          ? "all" + fixedDomain
-          : emailPrefix + fixedDomain,
+          ? "all" + safeFixedDomain
+          : emailPrefix + safeFixedDomain,
       endTime,
       title,
       questions: formattedQuestions,
     };
 
     try {
-      const result = await updateSurveyAPI(surveyId, surveyData); // Use the imported API function
+      const result = await updateSurveyAPI(surveyId, surveyData);
       console.log("Survey successfully updated:", result);
       alert("Survey updated successfully!");
-      setSuccessMessage("Survey updated successfully!"); // Set success message
-      // Optionally, you can redirect the user or perform other actions upon success
+      setSuccessMessage("Survey updated successfully!");
     } catch (error) {
       console.error("Error updating survey:", error);
       alert(`Failed to update survey: ${error.message}`);
       setErrorMessage(`Failed to update survey: ${error.message}`);
-    }
-  };
-
+    }}
+  
   const handleExcelUpload = (event) => {
     parseExcelFile(event.target.files[0], setQuestions, setFileName);
     event.target.value = "";

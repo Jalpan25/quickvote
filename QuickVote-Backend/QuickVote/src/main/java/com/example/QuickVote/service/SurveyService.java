@@ -48,9 +48,9 @@ public class    SurveyService {
 
         List<QuestionDTO> questionDtos = survey.getQuestions().stream()
                 .map(question -> new QuestionDTO(
-                        question.getText(),
-                        question.getOptions().stream().map(Option::getOptionText).collect(Collectors.toList())
-                ))
+                question.getText(),
+                question.getOptions().stream().map(Option::getOptionText).collect(Collectors.toList())
+        ))
                 .collect(Collectors.toList());
 
         dto.setQuestions(questionDtos);

@@ -147,7 +147,4 @@ public class SurveyController {
         SurveyDTO survey = surveyService.getSurveyById(id);
         return ResponseEntity.ok(survey);
     }
-
-
-
 }

@@ -1,8 +1,11 @@
 package com.example.QuickVote.dto;
 
+import com.example.QuickVote.model.Option;
+
 import java.util.List;
 
 public class QuestionDTO {
+    private Long id;
     private String text;
     private List<String> options;
 
@@ -11,7 +14,14 @@ public class QuestionDTO {
         this.options=options;
     }
 
-    // Getters and Setters
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
     public String getText() {
         return text;
     }
