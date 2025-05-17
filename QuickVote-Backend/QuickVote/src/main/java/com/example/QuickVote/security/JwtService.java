@@ -1,8 +1,12 @@
-package com.example.QuickVote.service;
+package com.example.QuickVote.security;
 
 import com.example.QuickVote.dto.AppUser;
-import io.jsonwebtoken.*;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -12,14 +16,19 @@ import java.util.Date;
 import java.util.Map;
 import java.util.function.Function;
 
+
 @Service
 public class JwtService {
 
-    private static final String SECRET_KEY = "your-256-bit-secret-key-should-be-very-long-for-hmac";
+    @Value("${jwt.secret}")
+    private String secretKey;
+
 
     private Key getSigningKey() {
-        return Keys.hmacShaKeyFor(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
+        byte[] keyBytes = secretKey.getBytes(StandardCharsets.UTF_8);
+        return Keys.hmacShaKeyFor(keyBytes);
     }
+
 
     // ✅ Generate token for AppUser (OTP users)
     public String generateToken(AppUser user) {

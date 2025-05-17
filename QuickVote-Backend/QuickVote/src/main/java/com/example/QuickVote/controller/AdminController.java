@@ -5,15 +5,16 @@ import com.example.QuickVote.dto.PendingAdminResponseDTO;
 import com.example.QuickVote.dto.AppUser;
 import com.example.QuickVote.model.Admin;
 import com.example.QuickVote.service.AdminService;
-import com.example.QuickVote.service.JwtService;
+import com.example.QuickVote.security.JwtService;
 
+import com.example.QuickVote.service.OtpService;
+import com.example.QuickVote.util.EmailTemplates;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -29,12 +30,11 @@ public class AdminController {
     private JwtService jwtService;
 
     @Autowired
+    private OtpService otpService;
+
+    @Autowired
     private AuthenticationManager authenticationManager;
 
-//    @GetMapping("/secure")
-//    public ResponseEntity<String> testSecureEndpoint() {
-//        return ResponseEntity.ok("✅ Token is valid. You accessed a protected endpoint.");
-//    }
 
     // ✅ Admin Signup Request
     @PostMapping("/register")
@@ -44,14 +44,34 @@ public class AdminController {
         if (existingAdmin.isPresent()) {
             Map<String, String> response = new HashMap<>();
             response.put("message", "An admin with this email already exists.");
-            return new ResponseEntity<>(response, HttpStatus.CONFLICT); // Use HTTP 409 Conflict
+            return new ResponseEntity<>(response, HttpStatus.CONFLICT);
         }
 
+        // Save the new admin
         adminService.createAdmin(adminRequestDTO);
+
+        // Notify Super Admin(s)
+        List<Admin> superAdmins = adminService.findByRole("superAdmin");
+        for (Admin superAdmin : superAdmins) {
+            String toEmail = superAdmin.getEmail();
+            String subject = "New Admin Request Received";
+
+            String emailContent = EmailTemplates.getAdminRequestNotificationTemplate(
+                    adminRequestDTO.getInstitutionName(),
+                    adminRequestDTO.getEmail(),
+                    adminRequestDTO.getPhoneNumber(),
+                    adminRequestDTO.getFixedDomain()
+            );
+
+            otpService.sendHtmlMail(toEmail, subject, emailContent); // ✅ Use HTML mail sender
+        }
+
         Map<String, String> response = new HashMap<>();
         response.put("message", "Your request to become an admin has been received.");
         return ResponseEntity.ok(response);
     }
+
+
 
     // ✅ Admin Login With JWT Token (using AuthenticationManager)
     @PostMapping("/login")

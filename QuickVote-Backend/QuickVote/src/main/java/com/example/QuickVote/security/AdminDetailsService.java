@@ -1,4 +1,4 @@
-package com.example.QuickVote.service;
+package com.example.QuickVote.security;
 
 import com.example.QuickVote.repository.AdminRepository;
 import org.springframework.beans.factory.annotation.Autowired;

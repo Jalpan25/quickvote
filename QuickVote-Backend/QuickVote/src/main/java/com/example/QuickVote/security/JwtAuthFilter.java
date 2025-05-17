@@ -1,7 +1,5 @@
     package com.example.QuickVote.security;
 
-    import com.example.QuickVote.service.AdminDetailsService;
-    import com.example.QuickVote.service.JwtService;
     import jakarta.servlet.FilterChain;
     import jakarta.servlet.ServletException;
     import jakarta.servlet.http.HttpServletRequest;

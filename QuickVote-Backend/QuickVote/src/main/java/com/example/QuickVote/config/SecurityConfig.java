@@ -1,7 +1,7 @@
 package com.example.QuickVote.config;
 
 import com.example.QuickVote.security.JwtAuthFilter;
-import com.example.QuickVote.service.AdminDetailsService;
+import com.example.QuickVote.security.AdminDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

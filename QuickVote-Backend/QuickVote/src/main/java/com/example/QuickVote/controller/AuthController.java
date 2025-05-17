@@ -2,7 +2,7 @@ package com.example.QuickVote.controller;
 import com.example.QuickVote.dto.AppUser;
 import com.example.QuickVote.model.User;
 import com.example.QuickVote.repository.UserRepository;
-import com.example.QuickVote.service.JwtService;
+import com.example.QuickVote.security.JwtService;
 import com.example.QuickVote.service.OtpService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;

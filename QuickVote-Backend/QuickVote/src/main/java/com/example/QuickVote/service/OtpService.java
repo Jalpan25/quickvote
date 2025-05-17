@@ -24,58 +24,42 @@ public class OtpService {
     private JavaMailSender mailSender;
 
     public String generateOtp(String email) {
-        // Generate a 6-digit OTP
         String otp = String.valueOf(new Random().nextInt(900000) + 100000);
+        otpRepository.findByEmail(email).ifPresent(otpRepository::delete);
 
-        // Check if an OTP already exists for the email
-        Optional<Otp> existingOtp = otpRepository.findByEmail(email);
-
-        // If an OTP exists, delete it
-        existingOtp.ifPresent(otpRepository::delete);
-
-        // Create a new OTP entity and save it
         Otp otpEntity = new Otp(email, otp, LocalDateTime.now().plusMinutes(5));
         otpRepository.save(otpEntity);
 
-        // Send the OTP to the user's email
         sendOtpEmail(email, otp);
         return otp;
     }
 
     private void sendOtpEmail(String email, String otp) {
-        try {
-            // Create a MIME message
-            MimeMessage mimeMessage = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
-
-            helper.setTo(email);
-            helper.setSubject("Your QuickVote Verification Code");
-
-            // Get the email template from the EmailTemplates utility class
-            String htmlContent = EmailTemplates.getOtpEmailTemplate(otp);
-
-            helper.setText(htmlContent, true); // Set to HTML format
-
-            // Send the email
-            mailSender.send(mimeMessage);
-
-        } catch (MessagingException e) {
-            // Log the exception or handle it appropriately
-            e.printStackTrace();
-        }
+        String subject = "Your QuickVote Verification Code";
+        String htmlContent = EmailTemplates.getOtpEmailTemplate(otp);
+        sendHtmlMail(email, subject, htmlContent);
     }
 
     public boolean verifyOtp(String email, String enteredOtp) {
-        // Fetch the OTP entity by email
         Optional<Otp> otpEntity = otpRepository.findByEmail(email);
+        return otpEntity.isPresent() &&
+                otpEntity.get().getOtp().equals(enteredOtp) &&
+                otpEntity.get().getExpirationTime().isAfter(LocalDateTime.now());
+    }
 
-        // Validate the OTP and check its expiration time
-        if (otpEntity.isPresent()) {
-            Otp otp = otpEntity.get();
-            if (otp.getOtp().equals(enteredOtp) && otp.getExpirationTime().isAfter(LocalDateTime.now())) {
-                return true;
-            }
+    // ✅ New method to send HTML emails
+    public void sendHtmlMail(String to, String subject, String htmlContent) {
+        try {
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(htmlContent, true); // Enable HTML content
+
+            mailSender.send(mimeMessage);
+        } catch (MessagingException e) {
+            e.printStackTrace(); // You may replace this with a logger
         }
-        return false;
     }
 }

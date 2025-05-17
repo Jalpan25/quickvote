@@ -102,6 +102,11 @@ public class AdminService {
             return "No admin request found for this email.";
         }
     }
+
+    public List<Admin> findByRole(String role) {
+        return adminRepository.findByRole(role);
+    }
+
     public String getFixedDomainByEmail(String email) {
         Optional<Admin> admin = adminRepository.findByEmail(email);
         return admin.map(Admin::getFixedDomain).orElse(null);
