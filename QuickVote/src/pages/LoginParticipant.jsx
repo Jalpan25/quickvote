@@ -1,12 +1,11 @@
-// File: LoginPage.js
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import EmailForm from "../Component/LoginPage/EmailForm";
 import OtpPopup from "../Component/LoginPage/OtpPopup";
 import BackgroundAnimation from "../Component/LoginPage/BackgroundAnimation";
 import LoginBanner from "../Component/LoginPage/LoginBanner";
+import BackButton from "../Component/LoginPage/BackButton";
 import useCountdown from "../Component/LoginPage/useCountdown";
-// import jwtDecode from "jwt-decode";
 import { jwtDecode } from "jwt-decode";
 import { sendOtp, verifyOtp } from "../APIs/authAPI";
 
@@ -52,29 +51,28 @@ const LoginPage = () => {
   };
 
   const handleLogin = async (e) => {
-  e.preventDefault();
-  if (otp.length !== 6) {
-    setError("Please enter a 6-digit code");
-    return;
-  }
+    e.preventDefault();
+    if (otp.length !== 6) {
+      setError("Please enter a 6-digit code");
+      return;
+    }
 
-  setIsLoading(true);
-  const response = await verifyOtp(email, otp);
-  if (response.success) {
-    const token = response.token;
-    localStorage.setItem("token", token); // ✅ Store token only
+    setIsLoading(true);
+    const response = await verifyOtp(email, otp);
+    if (response.success) {
+      const token = response.token;
+      localStorage.setItem("token", token); // ✅ Store token only
 
-    const decoded = jwtDecode(token);
-    console.log("Logged in as:", decoded.sub); // You can use decoded.sub when needed
+      const decoded = jwtDecode(token);
+      console.log("Logged in as:", decoded.sub); // You can use decoded.sub when needed
 
-    navigate("/dashboard");
-  } else {
-    setError(response.message);
-    setOtp("");
-  }
-  setIsLoading(false);
-};
-
+      navigate("/dashboard");
+    } else {
+      setError(response.message);
+      setOtp("");
+    }
+    setIsLoading(false);
+  };
 
   const handleClosePopup = () => {
     setIsPopupVisible(false);
@@ -84,6 +82,11 @@ const LoginPage = () => {
 
   const reopenOtpPopup = () => {
     setIsPopupVisible(true);
+  };
+
+  const handleGoBack = () => {
+    // You can customize this based on your app's routing needs
+    navigate("/"); // Navigate to home page or landing page
   };
 
   // Show reopen button only if OTP was requested, popup is closed, and countdown is still active
@@ -99,15 +102,50 @@ const LoginPage = () => {
           
           <div className="p-8">
             <h1 className="text-3xl font-bold text-blue-700 mb-6 text-center">Welcome Back</h1>
-            <EmailForm 
-              email={email}
-              setEmail={setEmail}
-              error={error}
-              handleGenerateOtp={handleGenerateOtp}
-              isOtpSending={isOtpSending}
-              showReopenButton={showReopenButton}
-              reopenOtpPopup={reopenOtpPopup}
-            />
+            
+            {/* Modified EmailForm - If you need to make changes to EmailForm component, you'll need to update that file as well */}
+            <div className="space-y-4">
+              <div className="relative">
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                  Email Address
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="your@email.com"
+                  disabled={isOtpSending}
+                />
+              </div>
+              
+              {error && <p className="text-sm text-red-600">{error}</p>}
+              
+              <div className="flex space-x-2">
+                <button
+                  onClick={handleGenerateOtp}
+                  disabled={isOtpSending}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50"
+                >
+                  {isOtpSending ? "Sending..." : "Get OTP"}
+                </button>
+                
+                <BackButton 
+                  onClick={handleGoBack}
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-700" 
+                />
+              </div>
+              
+              {showReopenButton && (
+                <button
+                  onClick={reopenOtpPopup}
+                  className="w-full mt-2 text-blue-600 hover:text-blue-800 text-sm"
+                >
+                  Enter OTP ({countdown}s)
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
