@@ -23,7 +23,7 @@ const Dashboard = () => {
             const email = decodedToken.sub || decodedToken.email; // Adjust based on your token claims
             setUserEmail(email);
 
-            fetchSurveysByEmail(email, token).then(setSurveys);
+            fetchSurveysByEmail(email).then(setSurveys);
         } catch (err) {
             console.error("Invalid token", err);
             localStorage.removeItem("token");
@@ -36,8 +36,34 @@ const Dashboard = () => {
         navigate('/');
     };
 
-    const handleNavigate = (id, title, attempted) => {
-        navigate(attempted ? '/surveyResult' : '/questionpage', { state: { surveyId: id, title } });
+    const handleNavigate = (survey) => {
+        const { id, title, attempted, result_show, endTime } = survey;
+        const surveyEnded = new Date(endTime) <= currentTime;
+        
+        // Logic for navigation:
+        // 1. If survey is ended, check if results should be shown
+        if (surveyEnded) {
+            if (result_show) {
+                navigate('/surveyresult', { state: { surveyId: id, title } });
+            } else {
+                // Survey ended but results not available to show
+                alert("Survey results are not available for viewing yet.");
+            }
+            return;
+        }
+        
+        // 2. For ongoing surveys:
+        // - If attempted, check if results can be shown
+        if (attempted) {
+            if (result_show) {
+                navigate('/surveyresult', { state: { surveyId: id, title } });
+            } else {
+                alert("You've completed this survey. Results will be available later.");
+            }
+        } else {
+            // Not attempted yet, navigate to question page
+            navigate('/questionpage', { state: { surveyId: id, title } });
+        }
     };
 
     const ongoingSurveys = surveys.filter(survey => new Date(survey.endTime) > currentTime);
@@ -64,6 +90,7 @@ const Dashboard = () => {
         ];
         return gradients[Math.floor(Math.random() * gradients.length)];
     };
+
     return (
         <div className="flex min-h-screen bg-gradient-to-br from-violet-50 via-indigo-50 to-sky-50">
             {/* Sidebar */}
@@ -122,7 +149,7 @@ const Dashboard = () => {
                                 return (
                                 <div 
                                     key={survey.id}
-                                    onClick={() => handleNavigate(survey.id, survey.title, survey.attempted)}
+                                    onClick={() => handleNavigate(survey)}
                                     className="relative overflow-hidden bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 cursor-pointer group"
                                 >
                                     {/* Background glow effect */}
@@ -256,8 +283,8 @@ const Dashboard = () => {
                                     return (
                                     <li 
                                         key={survey.id}
-                                        onClick={() => handleNavigate(survey.id, survey.title, survey.attempted)}
-                                        className="flex items-center justify-between p-5 hover:bg-gradient-to-r hover:from-indigo-50/50 hover:to-purple-50/50 transition-colors duration-200 cursor-pointer relative group"
+                                        onClick={() => handleNavigate(survey)}
+                                        className={`flex items-center justify-between p-5 hover:bg-gradient-to-r hover:from-indigo-50/50 hover:to-purple-50/50 transition-colors duration-200 cursor-pointer relative group ${!survey.result_show ? 'opacity-70' : ''}`}
                                     >
                                         {/* Hover indicator */}
                                         <div className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-indigo-500 to-purple-500 scale-y-0 group-hover:scale-y-100 transition-transform duration-200 origin-bottom"></div>
@@ -284,7 +311,9 @@ const Dashboard = () => {
                                             </div>
                                         </div>
                                         <div className="flex items-center">
-                                            <span className="bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 text-sm py-1 px-3 rounded-full border border-purple-200 group-hover:border-purple-300 transition-colors duration-200">Ended</span>
+                                            <span className={`bg-gradient-to-r ${survey.result_show ? 'from-purple-100 to-pink-100 text-purple-700' : 'from-gray-100 to-gray-200 text-gray-700'} text-sm py-1 px-3 rounded-full border border-purple-200 group-hover:border-purple-300 transition-colors duration-200`}>
+                                                {survey.result_show ? 'Results Available' : 'Results Not Available'}
+                                            </span>
                                             <svg className="w-5 h-5 text-indigo-400 ml-2 transform group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                             </svg>

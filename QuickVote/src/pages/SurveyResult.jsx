@@ -82,12 +82,20 @@ const SurveyResult = () => {
     setAnalysis(analysis);
   };
 
-  const calculateParticipationRate = () => {
-    const answeredQuestions = userResponses.length;
-    const totalQuestions = surveyData.questions.length;
-    return totalQuestions > 0 ? (answeredQuestions / totalQuestions) * 100 : 0;
-  };
-
+const calculateParticipationRate = () => {
+  if (!surveyData || !surveyData.participationNo) return 0;
+  
+  // Calculate participation rate as (totalResponses / participationNo) * 100
+  const totalResponses = surveyData.totalResponses || 0;
+ // const totalquestion=surveyData.question.length || 1;
+ const totalQuestions=surveyData.questions.length || 1;
+  const participationNo = surveyData.participationNo || 1; // Avoid division by zero
+  
+  // Convert to percentage and round to 2 decimal places
+  const totaluser = (totalResponses/totalQuestions);
+  const participationRate = (totaluser/ participationNo) * 100;
+  return Math.round(participationRate * 100) / 100;
+};
   const identifyTrends = () => {
     const trends = [];
 

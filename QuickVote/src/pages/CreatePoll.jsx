@@ -14,6 +14,8 @@ const CreatePoll = () => {
   const [fixedDomain, setFixedDomain] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [resultShow, setresultShow] = useState(false);
+  const [participationNo , setparticipationNo ] = useState(0);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -76,6 +78,8 @@ const CreatePoll = () => {
         : emailPrefix + fixedDomain,
       endTime,
       title,
+      resultShow,
+      participationNo,
       questions: [{ text: question.text, options: question.options }],
     };
 
@@ -307,6 +311,110 @@ const CreatePoll = () => {
               <strong className="ml-2 text-blue-700 font-medium border-b border-dotted border-blue-500 pb-0.5">
                 {emailRestrictionMode === "anyone" ? "all" : emailPrefix || "emailprefix"}{fixedDomain || "..."}
               </strong>
+            </p>
+          </div>
+
+           {/* NEW FIELD: Show Results to Participants */}
+          <div className="mb-6">
+            <label className="block font-semibold mb-3 text-gray-800 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              Show Results to Participants:
+            </label>
+            
+            <div className="flex items-center">
+              <div 
+                onClick={() => setresultShow(!resultShow)}
+                className={`relative w-20 h-10 flex items-center ${resultShow ? 'justify-end bg-gradient-to-r from-blue-500 to-purple-600' : 'justify-start bg-gray-300'} rounded-full p-1 cursor-pointer transition-all duration-300 ease-in-out shadow-md hover:shadow-lg transform hover:-translate-y-0.5 active:translate-y-0`}
+              >
+                <div className="w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center transition-all duration-300">
+                  {resultShow ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  )}
+                </div>
+              </div>
+              <span className={`ml-3 font-medium ${ resultShow ? 'text-blue-700' : 'text-gray-700'}`}>
+                {resultShow ? 'Results will be shared with participants' : 'Results will be private'}
+              </span>
+            </div>
+            
+            <p className="mt-2 text-sm text-gray-600 flex items-start">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1 text-blue-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>
+                When enabled, participants can view survey statistics after submitting their responses.
+              </span>
+            </p>
+          </div>
+
+          {/* NEW FIELD: Expected Participation Number */}
+          <div className="mb-6 relative">
+            <label className="block font-semibold mb-2 text-gray-800 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              Expected Participation Number:
+            </label>
+            <div className="flex">
+              <div className="relative w-full">
+                <input
+                  type="number"
+                  value={participationNo || ''}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Allow empty field or valid numbers
+                    if (value === '') {
+                      setparticipationNo('');
+                    } else {
+                      const numValue = parseInt(value);
+                      if (!isNaN(numValue)) {
+                        setparticipationNo(numValue);
+                      }
+                    }
+                  }}
+                  placeholder="Enter expected number of participants"
+                  className="w-full px-4 py-3 border-2 border-blue-200 rounded-lg
+                          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                          bg-white shadow-sm transition-all duration-200
+                          text-gray-800 placeholder-gray-400"
+                />
+                {participationNo !== '' && participationNo !== 0 && (
+                  <div className="absolute top-1/2 right-3 transform -translate-y-1/2 flex space-x-1">
+                    <button 
+                      onClick={() => setExpectedParticipants(Math.max(0, parseInt(participationNo) - 1))}
+                      className="p-1 bg-gray-200 hover:bg-gray-300 rounded-l text-gray-800 focus:outline-none"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                      </svg>
+                    </button>
+                    <button 
+                      onClick={() => setExpectedParticipants(parseInt(participationNo) + 1)}
+                      className="p-1 bg-gray-200 hover:bg-gray-300 rounded-r text-gray-800 focus:outline-none"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+            <p className="mt-2 text-sm text-gray-600 flex items-start">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1 text-blue-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>
+                This helps us optimize survey resources and prepare for the expected traffic.
+              </span>
             </p>
           </div>
 
