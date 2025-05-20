@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { registerUser } from "../APIs/registerApi";
 import { useNavigate } from "react-router-dom";
 
@@ -218,7 +218,7 @@ const RegistrationForm = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-100 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-purple-100 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
       {/* Dynamic Animated Background Lights */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div 
@@ -235,6 +235,17 @@ const RegistrationForm = () => {
             transformOrigin: 'center',
           }}
         ></div>
+      </div>
+
+      {/* Back Button - Improved positioning */}
+      <div className="w-full max-w-4xl mb-4 flex justify-start">
+        <button 
+          onClick={navigateToLogin}
+          className="flex items-center py-2 px-4 bg-white rounded-lg shadow-md text-gray-700 hover:bg-gray-100 transition-colors z-20 hover:shadow-lg"
+        >
+          <ArrowLeft size={18} className="mr-2" />
+          Back to Login
+        </button>
       </div>
 
       <div className="w-full max-w-4xl flex flex-col md:flex-row bg-white rounded-2xl shadow-xl overflow-hidden relative z-10 hover:shadow-2xl transition-shadow duration-300">
