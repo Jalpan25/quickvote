@@ -16,8 +16,6 @@
     import java.io.IOException;
     import java.util.List;
 
-    //public class JwtAuthFilter {
-    //}
     @Component
     public class JwtAuthFilter extends OncePerRequestFilter {
         @Autowired
@@ -63,6 +61,5 @@
 
             filterChain.doFilter(request, response);
         }
-
     }
 
