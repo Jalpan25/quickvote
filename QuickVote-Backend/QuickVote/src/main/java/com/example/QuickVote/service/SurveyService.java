@@ -45,6 +45,9 @@ public class    SurveyService {
         dto.setEmailRestriction(survey.getEmailRestriction());
         dto.setEndTime(survey.getEndTime());
         dto.setTitle(survey.getTitle());
+        dto.setResultShow(survey.isResultShow());  // For boolean
+        dto.setParticipationNo(survey.getParticipationNo());  // For int
+
 
         List<QuestionDTO> questionDtos = survey.getQuestions().stream()
                 .map(question -> new QuestionDTO(
@@ -115,6 +118,7 @@ public class    SurveyService {
             dto.setId(survey.getId());
             dto.setTitle(survey.getTitle());
             dto.setEndTime(survey.getEndTime().toString());
+            dto.setResult_show(survey.isResultShow());
 
             // Check if a response exists for this survey and email
             boolean isAttempted = responseRepository.existsBySurveyAndEmail(survey, email);

@@ -25,6 +25,12 @@ public class Survey {
     @Column(name = "end_time", nullable = false)
     private LocalDateTime endTime;
 
+    @Column(name = "result_show", nullable = false)
+    private boolean resultShow; // New field
+
+    @Column(name = "participation_no", nullable = false)
+    private int participationNo = 0; // New field
+
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "survey_id")
     private List<Question> questions = new ArrayList<>();
@@ -97,5 +103,21 @@ public class Survey {
 
     public void setResponses(List<Response> responses) {
         this.responses = responses;
+    }
+
+    public boolean isResultShow() {
+        return resultShow;
+    }
+
+    public void setResultShow(boolean resultShow) {
+        this.resultShow = resultShow;
+    }
+
+    public int getParticipationNo() {
+        return participationNo;
+    }
+
+    public void setParticipationNo(int participationNo) {
+        this.participationNo = participationNo;
     }
 }

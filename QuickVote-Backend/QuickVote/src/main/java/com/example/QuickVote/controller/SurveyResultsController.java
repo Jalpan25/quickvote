@@ -44,6 +44,7 @@ public class SurveyResultsController {
         Map<String, Object> result = new HashMap<>();
         result.put("surveyId", survey.getId());
         result.put("surveyTitle", survey.getTitle());
+        result.put("participationNo", survey.getParticipationNo()); // 👈 includes participation_no
         result.put("totalResponses", responses.size());
 
         List<Map<String, Object>> questionsList = new ArrayList<>();

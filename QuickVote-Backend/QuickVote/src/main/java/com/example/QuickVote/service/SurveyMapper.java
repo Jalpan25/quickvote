@@ -23,6 +23,8 @@ public class SurveyMapper {
         survey.setEmailRestriction(surveyDTO.getEmailRestriction());
         survey.setEndTime(surveyDTO.getEndTime());
         survey.setTitle(surveyDTO.getTitle());
+        survey.setResultShow(surveyDTO.isResultShow());
+        survey.setParticipationNo(surveyDTO.getParticipationNo());
         survey.setQuestions(surveyDTO.getQuestions().stream().map(this::mapToQuestionEntity).collect(Collectors.toList()));
         return survey;
     }

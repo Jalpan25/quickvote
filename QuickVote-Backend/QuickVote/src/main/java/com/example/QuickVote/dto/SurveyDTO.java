@@ -9,6 +9,24 @@ public class SurveyDTO {
     private LocalDateTime endTime;
     private String title;
     private List<QuestionDTO> questions;
+    private boolean resultShow;     // New field
+    private int participationNo;
+
+    public boolean isResultShow() {
+        return resultShow;
+    }
+
+    public void setResultShow(boolean resultShow) {
+        this.resultShow = resultShow;
+    }
+
+    public int getParticipationNo() {
+        return participationNo;
+    }
+
+    public void setParticipationNo(int participationNo) {
+        this.participationNo = participationNo;
+    }
 
     // Getters and Setters
     public String getAdminEmail() {
