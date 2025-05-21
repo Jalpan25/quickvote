@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation,useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 import QuestionComponent from "../Component/QuestionComponent";
 import { parseExcelFile } from "../utils/excelUtils";
@@ -7,6 +7,7 @@ import { fetchSurveyAPI, updateSurveyAPI, fetchFixedDomainAPI } from "../APIs/Ed
 
 const SurveyComponent = () => {
   const location = useLocation();
+    const navigate = useNavigate();
 
   const adminEmail = location.state?.adminEmail || "";
   const surveyId = location.state?.surveyId || "";
@@ -183,12 +184,19 @@ const SurveyComponent = () => {
     try {
       const result = await updateSurveyAPI(surveyId, surveyData);
       console.log("Survey successfully updated:", result);
-      alert("Survey updated successfully!");
       setSuccessMessage("Survey updated successfully!");
+      setTimeout(() => {
+        setSuccessMessage("");
+        navigate('/admindashboard');
+      }, 2000);
     } catch (error) {
       console.error("Error updating survey:", error);
-      alert(`Failed to update survey: ${error.message}`);
+       alert(`Failed to update survey Because It is attempted: ${error.message}`);
       setErrorMessage(`Failed to update survey: ${error.message}`);
+      setTimeout(() => {
+        setSuccessMessage("");
+        navigate('/admindashboard');
+      }, 2000);
     }}
   
   const handleExcelUpload = (event) => {

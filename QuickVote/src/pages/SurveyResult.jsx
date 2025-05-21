@@ -17,7 +17,7 @@ import {
 import {
   FileText, FileDown, Brain, TrendingUp,
   AlertTriangle, CheckCircle, PieChart as PieChartIcon,
-  BarChart as BarChartIcon
+  BarChart as BarChartIcon,ArrowLeft
 } from 'lucide-react';
 
 
@@ -228,14 +228,24 @@ ${rec.details}
   if (error) return <div className="error-message">{error}</div>;
   if (!surveyData) return <div>No survey data available.</div>;
   return (
-    <div className="relative w-full min-h-screen bg-gradient-to-r from-blue-50 to-purple-50 overflow-hidden">
+   
+<div className="relative w-full min-h-screen bg-gradient-to-r from-blue-50 to-purple-50 overflow-hidden">
       {/* Animated Background Lights */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute w-96 h-96 bg-blue-400 opacity-20 blur-3xl animate-pulse rounded-full top-0 left-0"></div>
         <div className="absolute w-full h-full bg-purple-400 opacity-30 blur-3xl animate-pulse rounded-full bottom-0 right-0"></div>
       </div>
-  
+      
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Back Button - Moved inside the main container */}
+        <button 
+          onClick={() => window.location.href = '/dashboard'} 
+          className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 mb-6"
+        >
+          <ArrowLeft className="text-white" />
+          Back to Dashboard
+        </button>
+        
         {/* Header Section */}
         <header className="relative bg-white/80 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/10 p-6 mb-8 overflow-hidden">
           {/* Gradient Overlay */}
@@ -354,7 +364,7 @@ ${rec.details}
         )}
   
         {/* Chart Toggle */}
-        <div className="flex justify-end mb-6">
+        <div className="flex justify-center mb-6">
           <button
             onClick={() => setChartType(chartType === "bar" ? "pie" : "bar")}
             className="px-4 py-2 bg-white/80 backdrop-blur-lg rounded-xl shadow-md hover:bg-gray-100 transition-all flex items-center gap-2 text-blue-600"

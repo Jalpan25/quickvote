@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, PieChart, Pie, Cell,
 } from "recharts";
-import { FileDown, Brain, TrendingUp, AlertTriangle } from 'lucide-react';
+import { FileDown, Brain, TrendingUp, AlertTriangle,ArrowLeft } from 'lucide-react';
 import apiService, { getUserFromToken, isTokenExpired } from "../APIs/AdminResultPageAPI";
 
 const SurveyResult = () => {
@@ -238,8 +238,16 @@ ${rec.details}
   if (loading) return <div className="loading">Loading survey results...</div>;
   if (error) return <div className="error">{error}</div>;
 
-  return (
+ return (
     <div className="bg-gradient-to-r from-blue-100 to-purple-100 p-8 rounded-lg shadow-lg">
+      <button 
+        onClick={() => window.location.href = '/admindashboard'} 
+        className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 mb-4"
+      >
+        <ArrowLeft className="text-white" />
+        Back to Dashboard
+      </button>
+      
       <header className="flex justify-between items-center mb-8 bg-white bg-opacity-70 p-4 rounded-lg">
         <div>
           <h1 className="text-2xl font-bold text-blue-800">{surveyData.surveyTitle}</h1>
@@ -312,7 +320,7 @@ ${rec.details}
         </div>
       )}
   
-      <div className="mt-6 flex justify-end">
+      <div className="mt-6 flex justify-center">
         <button
           onClick={() => setChartType(chartType === "bar" ? "pie" : "bar")}
           className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg"

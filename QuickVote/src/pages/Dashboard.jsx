@@ -47,7 +47,7 @@ const Dashboard = () => {
                 navigate('/surveyresult', { state: { surveyId: id, title } });
             } else {
                 // Survey ended but results not available to show
-                alert("Survey results are not available for viewing yet.");
+                
             }
             return;
         }
@@ -58,7 +58,7 @@ const Dashboard = () => {
             if (result_show) {
                 navigate('/surveyresult', { state: { surveyId: id, title } });
             } else {
-                alert("You've completed this survey. Results will be available later.");
+                
             }
         } else {
             // Not attempted yet, navigate to question page
@@ -187,32 +187,58 @@ const Dashboard = () => {
                                             <span className="bg-indigo-50 px-2 py-0.5 rounded">ID: {survey.id}</span>
                                         </div>
                                         
-                                        <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium group-hover:shadow-md transition-all duration-300 ${
-                                            survey.attempted 
-                                                ? 'bg-gradient-to-r from-green-50 to-teal-50 text-teal-700 border border-green-200 group-hover:from-green-100 group-hover:to-teal-100' 
-                                                : 'bg-gradient-to-r from-amber-50 to-orange-50 text-orange-700 border border-amber-200 group-hover:from-amber-100 group-hover:to-orange-100'
-                                        }`}>
-                                            {survey.attempted 
-                                                ? (
-                                                    <>
-                                                        <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                                        </svg>
-                                                        Completed
-                                                    </>
-                                                ) 
-                                                : (
-                                                    <>
-                                                        <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                                                        </svg>
-                                                        Take Survey
-                                                    </>
-                                                )
-                                            }
+                                        <div className="flex items-center justify-between">
+                                            <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium group-hover:shadow-md transition-all duration-300 ${
+                                                survey.attempted 
+                                                    ? 'bg-gradient-to-r from-green-50 to-teal-50 text-teal-700 border border-green-200 group-hover:from-green-100 group-hover:to-teal-100' 
+                                                    : 'bg-gradient-to-r from-amber-50 to-orange-50 text-orange-700 border border-amber-200 group-hover:from-amber-100 group-hover:to-orange-100'
+                                            }`}>
+                                                {survey.attempted 
+                                                    ? (
+                                                        <>
+                                                            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                                            </svg>
+                                                            Completed
+                                                        </>
+                                                    ) 
+                                                    : (
+                                                        <>
+                                                            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                            </svg>
+                                                            Take Survey
+                                                        </>
+                                                    )
+                                                }
+                                            </div>
+                                            
+                                            <span className={`flex items-center bg-gradient-to-r ${
+                                              survey.result_show
+                                                ? 'from-purple-100 to-pink-100 text-purple-700 border-purple-200 group-hover:border-purple-300'
+                                                : 'from-gray-100 to-gray-200 text-gray-700 border-gray-300 group-hover:border-gray-400'
+                                            } text-sm py-1 px-3 rounded-full border transition-colors duration-200`}>
+                                              {survey.result_show ? 'Can view Result' : 'Cannot view Result'}
+                                              <svg
+                                                className={`w-4 h-4 ml-1 transition-transform duration-200 ${
+                                                  survey.result_show ? 'text-purple-400 group-hover:translate-x-1' : 'text-gray-400'
+                                                }`}
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                                xmlns="http://www.w3.org/2000/svg"
+                                              >
+                                                <path
+                                                  strokeLinecap="round"
+                                                  strokeLinejoin="round"
+                                                  strokeWidth={2}
+                                                  d="M9 5l7 7-7 7"
+                                                />
+                                              </svg>
+                                            </span>
                                         </div>
                                     </div>
-                                    
+                                        
                                     {/* Card bottom decoration */}
                                     <div className="relative h-1.5 bg-gray-100">
                                         <div className={`absolute top-0 left-0 h-full bg-gradient-to-r ${cardGradient}`} 
@@ -312,7 +338,7 @@ const Dashboard = () => {
                                         </div>
                                         <div className="flex items-center">
                                             <span className={`bg-gradient-to-r ${survey.result_show ? 'from-purple-100 to-pink-100 text-purple-700' : 'from-gray-100 to-gray-200 text-gray-700'} text-sm py-1 px-3 rounded-full border border-purple-200 group-hover:border-purple-300 transition-colors duration-200`}>
-                                                {survey.result_show ? 'Results Available' : 'Results Not Available'}
+                                                {survey.result_show ? 'Can view Result' : 'Cannot view Result'}
                                             </span>
                                             <svg className="w-5 h-5 text-indigo-400 ml-2 transform group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
