@@ -542,7 +542,7 @@ const SurveyComponent = () => {
                 {participationNo !== '' && participationNo !== 0 && (
                   <div className="absolute top-1/2 right-3 transform -translate-y-1/2 flex space-x-1">
                     <button 
-                      onClick={() => setExpectedParticipants(Math.max(0, parseInt(participationNo) - 1))}
+                      onClick={() => setparticipationNo(Math.max(0, parseInt(participationNo) - 1))}
                       className="p-1 bg-gray-200 hover:bg-gray-300 rounded-l text-gray-800 focus:outline-none"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -550,7 +550,7 @@ const SurveyComponent = () => {
                       </svg>
                     </button>
                     <button 
-                      onClick={() => setExpectedParticipants(parseInt(participationNo) + 1)}
+                      onClick={() => setparticipationNo(parseInt(participationNo) + 1)}
                       className="p-1 bg-gray-200 hover:bg-gray-300 rounded-r text-gray-800 focus:outline-none"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
