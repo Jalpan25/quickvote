@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, PieChart, Pie, Cell,
 } from "recharts";
-import { FileDown, Brain, TrendingUp, AlertTriangle,ArrowLeft } from 'lucide-react';
+import { FileDown, Brain, TrendingUp, AlertTriangle, ArrowLeft, Mail } from 'lucide-react';
 import apiService, { getUserFromToken, isTokenExpired } from "../APIs/AdminResultPageAPI";
 
 const SurveyResult = () => {
@@ -12,6 +12,7 @@ const SurveyResult = () => {
   const [error, setError] = useState(null);
   const [chartType, setChartType] = useState("bar");
   const [analysis, setAnalysis] = useState(null);
+  const [showParticipants, setShowParticipants] = useState(false);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -64,8 +65,9 @@ const SurveyResult = () => {
     const analysis = {
       overview: {
         totalQuestions: surveyData.questions.length,
-        totalResponses: surveyData.totalResponses,
+        totalParticipants: surveyData.participantEmails ? surveyData.participantEmails.length : 0,
         participationRate: calculateParticipationRate(),
+        completionStats: calculateCompletionStats(),
       },
       trends: identifyTrends(),
       insights: generateInsights(),
@@ -76,20 +78,40 @@ const SurveyResult = () => {
     setAnalysis(analysis);
   };
 
+  const calculateCompletionStats = () => {
+    // Calculate what percentage of questions have at least one response
+    const totalQuestions = surveyData.questions.length;
+    let questionsWithResponses = 0;
+    
+    surveyData.questions.forEach(question => {
+      const totalVotes = question.options.reduce((sum, opt) => sum + opt.frequency, 0);
+      if (totalVotes > 0) {
+        questionsWithResponses++;
+      }
+    });
+    
+    return {
+      questionsWithResponses,
+      completionPercentage: Math.round((questionsWithResponses / totalQuestions) * 100)
+    };
+  };
+
   const calculateParticipationRate = () => {
-  if (!surveyData || !surveyData.participationNo) return 0;
-  
-  // Calculate participation rate as (totalResponses / participationNo) * 100
-  const totalResponses = surveyData.totalResponses || 0;
- // const totalquestion=surveyData.question.length || 1;
- const totalQuestions=surveyData.questions.length || 1;
-  const participationNo = surveyData.participationNo || 1; // Avoid division by zero
-  
-  // Convert to percentage and round to 2 decimal places
-  const totaluser = (totalResponses/totalQuestions);
-  const participationRate = (totaluser/ participationNo) * 100;
-  return Math.round(participationRate * 100) / 100;
-};
+    if (!surveyData) return 0;
+    
+    // If participationNo is provided, use it as the denominator
+    if (surveyData.participationNo) {
+      const participationNo = surveyData.participationNo || 1; // Avoid division by zero
+      // Calculate participation rate based on actual participants
+      const participationRate = (surveyData.participantEmails?.length || 0) / participationNo * 100;
+      return Math.round(participationRate * 100) / 100;
+    } else {
+      // If participationNo is not provided, we can't calculate it properly
+      // Just return 100% or some default value
+      return 100;
+    }
+  };
+
   const identifyTrends = () => {
     const trends = [];
 
@@ -194,34 +216,54 @@ const SurveyResult = () => {
     if (!analysis) return;
 
     const report = `
-Survey Analysis Report
+SURVEY ANALYSIS REPORT
+=====================
+Survey Title: ${surveyData.surveyTitle}
 Generated on: ${new Date(analysis.timestamp).toLocaleString()}
 
-OVERVIEW
---------
+PARTICIPATION SUMMARY
+--------------------
+Total Participants: ${analysis.overview.totalParticipants}
+Target Audience: ${surveyData.participationNo || 'Not specified'}
+Audience Reach: ${analysis.overview.participationRate.toFixed(1)}%
 Total Questions: ${analysis.overview.totalQuestions}
-Total Responses: ${analysis.overview.totalResponses}
-Participation Rate: ${analysis.overview.participationRate.toFixed(1)}%
+Questions with Responses: ${analysis.overview.completionStats.questionsWithResponses}/${analysis.overview.totalQuestions} (${analysis.overview.completionStats.completionPercentage}%)
+
+PARTICIPANTS (${surveyData.participantEmails ? surveyData.participantEmails.length : 0})
+-----------
+${surveyData.participantEmails && surveyData.participantEmails.length > 0 
+  ? surveyData.participantEmails.map((email, i) => `${i+1}. ${email}`).join('\n')
+  : 'No participant emails available'
+}
 
 KEY TRENDS
 ----------
-${analysis.trends.map(trend => `
+${analysis.trends.length > 0 
+  ? analysis.trends.map(trend => `
 • ${trend.question}
   - Dominant Choice: ${trend.dominantOption}
   - Support: ${trend.percentage}%
   - Trend Strength: ${trend.strength}
-`).join('\n')}
+`).join('\n')
+  : 'No significant trends identified.'
+}
 
 INSIGHTS
 --------
-${analysis.insights.map(insight => `• ${insight.message}`).join('\n')}
+${analysis.insights.length > 0
+  ? analysis.insights.map(insight => `• ${insight.message}`).join('\n')
+  : 'No specific insights generated based on the current data.'
+}
 
 RECOMMENDATIONS
 --------------
-${analysis.recommendations.map(rec => `
+${analysis.recommendations.length > 0
+  ? analysis.recommendations.map(rec => `
 [${rec.priority.toUpperCase()}] ${rec.action}
 ${rec.details}
-`).join('\n')}
+`).join('\n')
+  : 'No specific recommendations at this time.'
+}
     `;
 
     const blob = new Blob([report], { type: 'text/plain' });
@@ -235,10 +277,14 @@ ${rec.details}
     window.URL.revokeObjectURL(url);
   };
 
+  const toggleParticipants = () => {
+    setShowParticipants(!showParticipants);
+  };
+
   if (loading) return <div className="loading">Loading survey results...</div>;
   if (error) return <div className="error">{error}</div>;
 
- return (
+  return (
     <div className="bg-gradient-to-r from-blue-100 to-purple-100 p-8 rounded-lg shadow-lg">
       <button 
         onClick={() => window.location.href = '/admindashboard'} 
@@ -248,17 +294,75 @@ ${rec.details}
         Back to Dashboard
       </button>
       
-      <header className="flex justify-between items-center mb-8 bg-white bg-opacity-70 p-4 rounded-lg">
+      <header className="flex justify-between items-center mb-8 bg-white bg-opacity-70 p-4 rounded-lg shadow">
         <div>
-          <h1 className="text-2xl font-bold text-blue-800">{surveyData.surveyTitle}</h1>
-          <p className="text-purple-700">Total Responses: {surveyData.totalResponses}</p>
-          {userData && <p className="text-blue-600">User: {userData.email} ({userData.role})</p>}
+          <h1 className="text-2xl font-bold text-blue-800 mb-3">{surveyData.surveyTitle}</h1>
+          
+          <div className="flex flex-wrap gap-4">
+            {surveyData.participantEmails && (
+              <div className="bg-blue-100 px-4 py-2 rounded-lg border border-blue-200 flex items-center">
+                <div className="h-8 w-8 rounded-full bg-blue-600 text-white flex items-center justify-center mr-2 font-bold">
+                  {surveyData.participantEmails.length}
+                </div>
+                <span className="text-blue-800 font-medium">Survey Participants</span>
+              </div>
+            )}
+            
+            <div className="bg-purple-100 px-4 py-2 rounded-lg border border-purple-200 flex items-center">
+              <div className="h-8 w-8 rounded-full bg-purple-600 text-white flex items-center justify-center mr-2 font-bold">
+                {surveyData.questions.length}
+              </div>
+              <span className="text-purple-800 font-medium">Survey Questions</span>
+            </div>
+            
+            <div className="bg-green-100 px-4 py-2 rounded-lg border border-green-200 flex items-center gap-2">
+              <div className="h-8 w-8 rounded-full bg-green-600 text-white flex items-center justify-center font-bold text-xs">
+                {calculateParticipationRate().toFixed(1)}%
+              </div>
+              <span className="text-green-800 font-medium">Completion Rate</span>
+            </div>  
+          </div>
+          
+          {surveyData.participantEmails && surveyData.participantEmails.length > 0 && (
+            <button 
+              onClick={toggleParticipants} 
+              className={`mt-3 px-3 py-1.5 rounded-md flex items-center gap-2 transition-all ${
+                showParticipants 
+                  ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                  : 'bg-blue-100 text-blue-800 hover:bg-blue-200'
+              }`}
+            >
+              <Mail size={16} />
+              {showParticipants ? 'Hide Participant List' : 'Show Participant List'}
+            </button>
+          )}
+          
+          {userData && <p className="text-blue-600 mt-3">User: {userData.email} ({userData.role})</p>}
         </div>
-        <button onClick={downloadReport} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+        <button onClick={downloadReport} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-md transition-all hover:shadow-lg">
           <FileDown className="text-white" />
           Download Analysis Report
         </button>
       </header>
+
+      {showParticipants && surveyData.participantEmails && surveyData.participantEmails.length > 0 && (
+        <div className="bg-white bg-opacity-80 p-6 rounded-lg shadow mb-6 transition-all duration-300 ease-in-out">
+          <div className="flex items-center gap-2 mb-4">
+            <Mail className="text-blue-600" />
+            <h2 className="text-xl font-semibold text-blue-800">Participant Emails</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {surveyData.participantEmails.map((email, index) => (
+              <div key={index} className="bg-blue-50 p-3 rounded-lg border border-blue-200 shadow-sm hover:shadow-md transition-all flex items-center">
+                <div className="h-6 w-6 rounded-full bg-blue-600 text-white flex items-center justify-center mr-2 text-xs font-bold">
+                  {index + 1}
+                </div>
+                <span className="text-blue-800 truncate">{email}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
   
       {analysis && (
         <div className="space-y-6">
@@ -267,15 +371,69 @@ ${rec.details}
               <Brain className="text-purple-600" />
               <h2 className="text-xl font-semibold text-blue-800">AI Analysis Overview</h2>
             </div>
-            <div className="mb-2">
-              <label className="text-purple-700 font-medium">Participation Rate</label>
-              <div className="h-4 bg-blue-100 rounded-full w-full mt-1">
-                <div 
-                  className="h-4 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full" 
-                  style={{ width: `${analysis.overview.participationRate}%` }}
-                />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <h3 className="text-blue-800 font-medium mb-2">Participation Overview</h3>
+                <div className="mb-3">
+                  <div className="flex justify-between mb-1">
+                    <span className="text-gray-600">Audience Reach:</span>
+                    <span className="text-blue-700 font-medium">{analysis.overview.participationRate.toFixed(1)}%</span>
+                  </div>
+                  <div className="h-4 bg-blue-100 rounded-full w-full">
+                    <div 
+                      className="h-4 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full" 
+                      style={{ width: `${analysis.overview.participationRate}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Shows what percentage of the target audience participated in the survey
+                  </p>
+                </div>
+                
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-gray-600">Question Coverage:</span>
+                    <span className="text-blue-700 font-medium">{analysis.overview.completionStats.completionPercentage}%</span>
+                  </div>
+                  <div className="h-4 bg-blue-100 rounded-full w-full">
+                    <div 
+                      className="h-4 bg-gradient-to-r from-green-500 to-teal-500 rounded-full" 
+                      style={{ width: `${analysis.overview.completionStats.completionPercentage}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Shows what percentage of questions received at least one response
+                  </p>
+                </div>
               </div>
-              <span className="text-blue-700 font-medium">{analysis.overview.participationRate.toFixed(1)}%</span>
+              
+              <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                <h3 className="text-purple-800 font-medium mb-2">Survey Statistics</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Total Questions:</span>
+                    <span className="font-medium text-purple-800">{analysis.overview.totalQuestions}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Total Participants:</span>
+                    <span className="font-medium text-purple-800">{analysis.overview.totalParticipants}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Questions with responses:</span>
+                    <span className="font-medium text-purple-800">
+                      {analysis.overview.completionStats.questionsWithResponses} / {analysis.overview.totalQuestions}
+                      <span className="text-gray-500 text-sm ml-1">
+                        ({analysis.overview.completionStats.completionPercentage}%)
+                      </span>
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Target audience reach:</span>
+                    <span className="font-medium text-purple-800">{analysis.overview.participationRate.toFixed(1)}%</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
   

@@ -1,10 +1,15 @@
 package com.example.QuickVote.controller;
-
-import com.example.QuickVote.model.*;
+import com.example.QuickVote.model.Option;
+import com.example.QuickVote.model.Question;
+import com.example.QuickVote.model.Response;
+import com.example.QuickVote.model.Survey;
 import com.example.QuickVote.repository.ResponseRepository;
 import com.example.QuickVote.repository.SurveyRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -31,6 +36,12 @@ public class SurveyResultsController {
         Survey survey = surveyOpt.get();
         List<Response> responses = responseRepository.findBySurveyId(surveyId);
 
+        // 📌 Extract unique participant emails
+        Set<String> participantEmails = responses.stream()
+                .map(Response::getEmail)
+                .collect(Collectors.toSet());
+
+        // 👇 Count how many times each option was chosen for each question
         Map<Long, Map<Long, Long>> questionOptionCount = new HashMap<>();
 
         for (Response response : responses) {
@@ -44,8 +55,9 @@ public class SurveyResultsController {
         Map<String, Object> result = new HashMap<>();
         result.put("surveyId", survey.getId());
         result.put("surveyTitle", survey.getTitle());
-        result.put("participationNo", survey.getParticipationNo()); // 👈 includes participation_no
+        result.put("participationNo", survey.getParticipationNo());
         result.put("totalResponses", responses.size());
+        result.put("participantEmails", participantEmails); // ✅ Add emails to response
 
         List<Map<String, Object>> questionsList = new ArrayList<>();
 
