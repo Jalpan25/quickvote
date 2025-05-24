@@ -17,6 +17,8 @@ public interface ResponseRepository extends JpaRepository<Response, Long> {
     boolean existsBySurveyAndEmail(Survey survey, String email);
 //    boolean existsBySurveyAndEmail(Survey survey, String email);
 
+    void deleteByEmail(String email);
+
     // ✅ New method to fetch responses by survey ID
     List<Response> findBySurveyId(Long surveyId);
 

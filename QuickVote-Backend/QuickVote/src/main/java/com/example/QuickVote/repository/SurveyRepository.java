@@ -18,4 +18,6 @@ public interface SurveyRepository extends JpaRepository<Survey, Long> {
     // Fetch surveys where email matches the emailRestriction pattern (with * replaced by _)
     @Query("SELECT s FROM Survey s WHERE s.emailRestriction IS NOT NULL AND :email LIKE REPLACE(s.emailRestriction, '*', '_')")
     List<Survey> findSurveysByEmailRestriction(@Param("email") String email);
+
+    List<Survey> findByAdminEmail(String email);
 }
