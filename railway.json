@@ -1,0 +1,10 @@
+{
+  "build": {
+    "dockerfilePath": "QuickVote-Backend/Dockerfile",
+    "context": "QuickVote-Backend"
+  },
+  "deploy": {
+    "startCommand": "java -jar app.jar",
+    "restartPolicyType": "ON_FAILURE"
+  }
+}
