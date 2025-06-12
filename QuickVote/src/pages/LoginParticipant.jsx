@@ -8,9 +8,11 @@ import BackButton from "../Component/LoginPage/BackButton";
 import useCountdown from "../Component/LoginPage/useCountdown";
 import { jwtDecode } from "jwt-decode";
 import { sendOtp, verifyOtp } from "../APIs/authAPI";
+import SearchableDropdown from "../Component/SearchableDropdown";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
+  const [selectedOption, setSelectedOption] = useState(null);
   const [isPopupVisible, setIsPopupVisible] = useState(false);
   const [otp, setOtp] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -19,6 +21,7 @@ const LoginPage = () => {
   const [otpRequested, setOtpRequested] = useState(false);
   const navigate = useNavigate();
   
+ 
   const [countdown, startCountdown] = useCountdown(0);
 
   const handleGenerateOtp = async () => {
@@ -27,7 +30,7 @@ const LoginPage = () => {
       return;
     }
 
-    const lastOtpTime = localStorage.getItem("lastOtpTime");
+     const lastOtpTime = localStorage.getItem("lastOtpTime");
     const currentTime = Date.now();
 
     if (lastOtpTime && currentTime - lastOtpTime < 60000) {
@@ -65,7 +68,7 @@ const LoginPage = () => {
 
       const decoded = jwtDecode(token);
       console.log("Logged in as:", decoded.sub); // You can use decoded.sub when needed
-
+     localStorage.setItem("InstituteName", selectedOption.label);
       navigate("/dashboard");
     } else {
       setError(response.message);
@@ -105,6 +108,7 @@ const LoginPage = () => {
             
             {/* Modified EmailForm - If you need to make changes to EmailForm component, you'll need to update that file as well */}
             <div className="space-y-4">
+              <SearchableDropdown setSelectedOption={setSelectedOption} selectedOption={selectedOption}/>
               <div className="relative">
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                   Email Address

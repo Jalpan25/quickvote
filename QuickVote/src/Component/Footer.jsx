@@ -27,13 +27,15 @@ const Footer = () => {
               Empowering democracy through secure digital voting.
             </p>
             <div className="flex space-x-4">
-              {[FaFacebookF, FaTwitter, FaLinkedinIn, FaInstagram].map((Icon, index) => (
+              {[{Icon:FaFacebookF,url:"#"}, {Icon:FaTwitter,url:"#"}, {Icon:FaLinkedinIn,url:"https://www.linkedin.com/in/jalpan-patel-172980252/"}, {Icon:FaInstagram,url:"#"}].map((obj, index) => (
                 <a
                   key={index}
-                  href="#"
+                  href={obj.url}
+                  target="_blank"  
+                  rel="noopener noreferrer"
                   className="text-gray-500 hover:text-blue-500 transition-transform transform hover:scale-110"
                 >
-                  <Icon className="text-2xl" />
+                  <obj.Icon className="text-2xl" />
                 </a>
               ))}
             </div>

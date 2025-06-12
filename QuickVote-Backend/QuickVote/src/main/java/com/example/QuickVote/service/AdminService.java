@@ -74,7 +74,9 @@ public class AdminService {
                 .collect(Collectors.toList());
     }
 
-
+    public  List<String> getAllInstitutions() {
+        return adminRepository.findInstitutionNamesByRole("admin");
+    }
 
     @Transactional
     public String processAdminRequest(String email, String status) {

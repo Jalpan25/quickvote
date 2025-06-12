@@ -6,7 +6,6 @@ import com.example.QuickVote.dto.AppUser;
 import com.example.QuickVote.model.Admin;
 import com.example.QuickVote.service.AdminService;
 import com.example.QuickVote.security.JwtService;
-
 import com.example.QuickVote.service.OtpService;
 import com.example.QuickVote.util.EmailTemplates;
 import org.springframework.beans.factory.annotation.Autowired;

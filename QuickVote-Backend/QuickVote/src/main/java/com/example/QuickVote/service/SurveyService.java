@@ -1,7 +1,10 @@
 package com.example.QuickVote.service;
 
 import com.example.QuickVote.dto.*;
+import com.example.QuickVote.model.Admin;
 import com.example.QuickVote.model.Survey;
+import com.example.QuickVote.repository.AdminRepository;
+import com.example.QuickVote.repository.OptionRepository;
 import com.example.QuickVote.repository.ResponseRepository;
 import com.example.QuickVote.repository.SurveyRepository;
 
@@ -12,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -27,6 +31,9 @@ public class    SurveyService {
     private SurveyMapper surveyMapper;
     @Autowired
     private ResponseRepository responseRepository;
+
+    @Autowired
+    private AdminRepository adminRepository;
 
     public Survey saveSurvey(Survey survey) {
         return surveyRepository.save(survey);
@@ -104,15 +111,25 @@ public class    SurveyService {
         return new AdminSurveysResponseDTO(admin, createdSurveys);
     }
 
-    public List<FilterDTO> filterSurveysByEmail(String email) {
-        List<Survey> surveys = surveyRepository.findAll();
+    public List<FilterDTO> filterSurveysByEmailAndInstitution(String email, String institutionName) {
+        // Step 1: Find admin using email + institution
+        Optional<Admin> optionalAdmin = adminRepository.findByEmailAndInstitutionName(email, institutionName);
 
-        // Filter surveys by email restriction
+        if (optionalAdmin.isEmpty()) {
+            return Collections.emptyList(); // No admin with that email + institution
+        }
+
+        Admin admin = optionalAdmin.get();
+
+        // Step 2: Fetch surveys created by this admin only
+        List<Survey> surveys = surveyRepository.findByAdminEmail(admin.getEmail());
+
+        // Step 3: Filter by email domain restriction
         List<Survey> eligibleSurveys = surveys.stream()
                 .filter(survey -> isEmailEligible(email, survey.getEmailRestriction()))
                 .collect(Collectors.toList());
 
-        // Create a list of DTOs with the "attempted" status
+        // Step 4: Build DTOs
         return eligibleSurveys.stream().map(survey -> {
             FilterDTO dto = new FilterDTO();
             dto.setId(survey.getId());
@@ -120,13 +137,13 @@ public class    SurveyService {
             dto.setEndTime(survey.getEndTime().toString());
             dto.setResult_show(survey.isResultShow());
 
-            // Check if a response exists for this survey and email
             boolean isAttempted = responseRepository.existsBySurveyAndEmail(survey, email);
             dto.setAttempted(isAttempted);
 
             return dto;
         }).collect(Collectors.toList());
     }
+
 
     private boolean isEmailEligible(String email, String emailRestriction) {
         if (emailRestriction == null || emailRestriction.isEmpty()) {

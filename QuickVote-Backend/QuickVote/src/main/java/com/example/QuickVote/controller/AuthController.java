@@ -3,11 +3,16 @@ import com.example.QuickVote.dto.AppUser;
 import com.example.QuickVote.model.User;
 import com.example.QuickVote.repository.UserRepository;
 import com.example.QuickVote.security.JwtService;
+import com.example.QuickVote.service.AdminService;
 import com.example.QuickVote.service.OtpService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -23,11 +28,20 @@ public class AuthController {
     @Autowired
     private JwtService jwtService;
 
+    @Autowired
+    private AdminService adminService;
+
     @PostMapping("/send-otp")
     public ResponseEntity<String> sendOtp(@RequestBody Map<String, String> request) {
         String email = request.get("email");
         otpService.generateOtp(email);
         return ResponseEntity.ok("OTP sent to " + email);
+    }
+
+    @GetMapping("/getInstitute")
+    public List<String> getInstitute()
+    {
+        return adminService.getAllInstitutions();
     }
 
     @PostMapping("/verify-otp")
@@ -50,5 +64,4 @@ public class AuthController {
 
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid OTP or OTP expired.");
     }
-
 }

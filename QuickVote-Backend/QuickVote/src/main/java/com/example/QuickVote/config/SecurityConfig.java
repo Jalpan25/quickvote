@@ -41,7 +41,8 @@ public class SecurityConfig {
                                 "/api/admins/login",
                                 "/api/admins/pending",
                                 "/auth/send-otp",
-                                "/auth/verify-otp"
+                                "/auth/verify-otp",
+                                "/auth/getInstitute"
                         ).permitAll()
 
                         // 🔐 SuperAdmin-only endpoints

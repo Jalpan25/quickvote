@@ -78,8 +78,11 @@ public class SurveyController {
      * @return A list of surveys the user is allowed to access.
      */
     @PostMapping("/filter-by-email")
-    public List<FilterDTO> filterSurveysByEmail(@RequestBody EmailRequest emailRequest) {
-        return surveyService.filterSurveysByEmail(emailRequest.getEmail());
+    public List<FilterDTO> filterSurveysByEmail(@RequestBody EmailRequestDTO emailRequest) {
+        return surveyService.filterSurveysByEmailAndInstitution(
+                emailRequest.getEmail(),
+                emailRequest.getInstitutionName()
+        );
     }
 
     /**

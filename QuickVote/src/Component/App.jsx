@@ -26,7 +26,7 @@ function App() {
         <Route path="/register" element={<RegistrationForm />} />
         <Route path="/loginparticipant" element={<LoginParticipant />} />
         <Route path="/unauthorized" element={<Unauthorized />} />
-
+        
         {/* USER Routes */}
         <Route
           path="/dashboard"

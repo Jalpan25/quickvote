@@ -20,4 +20,5 @@ public interface SurveyRepository extends JpaRepository<Survey, Long> {
     List<Survey> findSurveysByEmailRestriction(@Param("email") String email);
 
     List<Survey> findByAdminEmail(String email);
+
 }
