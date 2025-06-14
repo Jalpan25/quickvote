@@ -18,8 +18,11 @@ public interface AdminRepository extends JpaRepository<Admin, Long> {
 
     @Query("SELECT a.institutionName FROM Admin a WHERE a.role = :role")
     List<String> findInstitutionNamesByRole(@Param("role") String role);
-    // Delete an admin by email
+//     Delete an admin by email
     void deleteByEmail(String email);
     Optional<Admin> findByEmailAndInstitutionName(String email, String institutionName);
+
+    List<Admin> findByInstitutionName(String institutionName);
+
 
 }
