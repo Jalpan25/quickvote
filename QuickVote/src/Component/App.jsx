@@ -44,14 +44,15 @@ function App() {
             </PrivateRoute>
           }
         />
-        <Route
-          path="/surveyresult"
-          element={
-            <PrivateRoute allowedRoles={['USER']}>
-              <SurveyResult />
-            </PrivateRoute>
-          }
-        />
+<Route
+  path="/surveyresult/:id"
+  element={
+    <PrivateRoute allowedRoles={['USER']}>
+      <SurveyResult />
+    </PrivateRoute>
+  }
+/>
+
 
         {/* ADMIN Routes */}
         <Route

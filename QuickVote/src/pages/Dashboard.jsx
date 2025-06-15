@@ -4,10 +4,12 @@ import { jwtDecode } from "jwt-decode";
 import logo from '../Assets/user.png';
 import { getTimeLeft } from '../utils/timeUtils.jsx';
 import { fetchSurveysByEmail } from '../APIs/FetchSurveysByEmail.jsx';
+import DashboardShimmer from './DashboardShimmer.jsx';
 
 const Dashboard = () => {
     const [surveys, setSurveys] = useState([]);
     const [userEmail, setUserEmail] = useState("");
+    const [isLoading, setIsLoading] = useState(true);
     const navigate = useNavigate();
     const currentTime = new Date();
 
@@ -23,13 +25,29 @@ const Dashboard = () => {
             const email = decodedToken.sub || decodedToken.email; // Adjust based on your token claims
             setUserEmail(email);
 
-            fetchSurveysByEmail(email).then(setSurveys);
+            // Start loading
+            setIsLoading(true);
+            
+            fetchSurveysByEmail(email)
+                .then(data => {
+                    setSurveys(data);
+                    setIsLoading(false); // Stop loading after data is fetched
+                })
+                .catch(error => {
+                    console.error("Error fetching surveys:", error);
+                    setIsLoading(false); // Stop loading even on error
+                });
         } catch (err) {
             console.error("Invalid token", err);
             localStorage.removeItem("token");
             navigate("/");
         }
     }, [navigate]);
+
+    // Show shimmer loading while data is being fetched
+    if (isLoading) {
+        return <DashboardShimmer />;
+    }
 
     const handleLogout = () => {
         localStorage.removeItem("token");
@@ -44,7 +62,7 @@ const Dashboard = () => {
         // 1. If survey is ended, check if results should be shown
         if (surveyEnded) {
             if (result_show) {
-                navigate('/surveyresult', { state: { surveyId: id, title } });
+                navigate(`/surveyresult/${id}`, { state: { title } });
             } else {
                 // Survey ended but results not available to show
                 
@@ -56,7 +74,7 @@ const Dashboard = () => {
         // - If attempted, check if results can be shown
         if (attempted) {
             if (result_show) {
-                navigate('/surveyresult', { state: { surveyId: id, title } });
+                navigate(`/surveyresult/${id}`, { state: { title } });
             } else {
                 
             }

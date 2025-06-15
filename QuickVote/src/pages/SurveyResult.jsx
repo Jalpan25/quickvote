@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation,useParams } from "react-router-dom";
 import { fetchSurveyResultsAPI, fetchUserResponsesAPI } from "../APIs/SurveyResultAPI"; // Import API functions
 import {
   BarChart,
@@ -28,9 +28,11 @@ const SurveyResult = () => {
   const [error, setError] = useState(null);
   const [chartType, setChartType] = useState("bar");
   const [analysis, setAnalysis] = useState(null);
+    const { id } = useParams();
+      const surveyId = id; 
 
   const location = useLocation();
-  const surveyId = location.state?.surveyId;
+  // const surveyId = location.state?.surveyId;
 
   useEffect(() => {
     if (!surveyId) {
