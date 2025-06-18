@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useLocation,useParams } from "react-router-dom";
+import { useLocation,useNavigate,useParams } from "react-router-dom";
 import { fetchSurveyResultsAPI, fetchUserResponsesAPI } from "../APIs/SurveyResultAPI"; // Import API functions
 import {
   BarChart,
@@ -30,6 +30,7 @@ const SurveyResult = () => {
   const [analysis, setAnalysis] = useState(null);
     const { id } = useParams();
       const surveyId = id; 
+      const navigate=useNavigate();
 
   const location = useLocation();
   // const surveyId = location.state?.surveyId;
@@ -241,7 +242,7 @@ ${rec.details}
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Back Button - Moved inside the main container */}
         <button 
-          onClick={() => window.location.href = '/dashboard'} 
+          onClick={() => navigate('/dashboard')} 
           className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 mb-6"
         >
           <ArrowLeft className="text-white" />
