@@ -1,6 +1,7 @@
 // src/APIs/SurveyResultAPI.jsx
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
+import { API_BASE_URL } from "./config";
 
 // Helper function to get and decode JWT token
 const getDecodedToken = () => {
@@ -24,7 +25,7 @@ export const fetchSurveyResultsAPI = async (surveyId) => {
 
   try {
     const response = await axios.post(
-      "http://localhost:8080/api/survey-results/results",
+      `${API_BASE_URL}/survey-results/results`,
       { surveyId },
       {
         headers: {
@@ -57,7 +58,7 @@ export const fetchUserResponsesAPI = async (surveyId) => {
 
   try {
     const response = await axios.post(
-      "http://localhost:8080/api/responses/fetch",
+      `${API_BASE_URL}/responses/fetch`,
       { surveyId, email },
       {
         headers: {

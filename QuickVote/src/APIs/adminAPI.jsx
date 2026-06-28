@@ -1,6 +1,8 @@
+import { API_BASE_URL } from "./config";
+
 export const loginAdmin = async (email, password) => {
   try {
-    const response = await fetch("http://localhost:8080/api/admins/login", {
+    const response = await fetch(`${API_BASE_URL}/admins/login`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

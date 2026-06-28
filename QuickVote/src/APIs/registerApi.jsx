@@ -1,6 +1,8 @@
+import { API_BASE_URL } from "./config";
+
 export const registerUser = async (userData) => {
   try {
-      const response = await fetch("http://localhost:8080/api/admins/register", {
+      const response = await fetch(`${API_BASE_URL}/admins/register`, {
           method: "POST",
           headers: {
               "Content-Type": "application/json",

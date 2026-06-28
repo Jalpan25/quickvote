@@ -8,11 +8,13 @@
  * @param {Object} surveyData - The survey data to be created
  * @returns {Promise<Object>} - The created survey data
  */
+import { API_BASE_URL } from "./config";
+
 export const createSurveyAPI = async (surveyData) => {
   const token = localStorage.getItem("token"); // Get JWT token from localStorage
   
   try {
-    const response = await fetch("http://localhost:8080/api/surveys", {
+    const response = await fetch(`${API_BASE_URL}/surveys`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -43,7 +45,7 @@ export const fetchFixedDomainAPI = async (adminEmail) => {
   const token = localStorage.getItem("token");
   
   try {
-    const response = await fetch("http://localhost:8080/api/admins/getFixedDomain", {
+    const response = await fetch(`${API_BASE_URL}/admins/getFixedDomain`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

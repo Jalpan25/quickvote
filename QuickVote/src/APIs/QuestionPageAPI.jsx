@@ -1,6 +1,7 @@
 // src/APIs/QuestionPageAPI.jsx
 import { jwtDecode } from "jwt-decode";
 import axios from "axios";
+import { API_BASE_URL } from "./config";
 
 // Helper function to get and decode JWT token
 const getDecodedToken = () => {
@@ -24,7 +25,7 @@ export const fetchQuestionsAPI = async (surveyId) => {
 
   try {
     const response = await axios.get(
-      `http://localhost:8080/api/surveys/${surveyId}/questions`,
+      `${API_BASE_URL}/surveys/${surveyId}/questions`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -66,7 +67,7 @@ export const submitResponseAPI = async (surveyId, responses, navigate) => {
 
   try {
     const response = await axios.post(
-      `http://localhost:8080/api/surveys/${surveyId}/responses`,
+      `${API_BASE_URL}/surveys/${surveyId}/responses`,
       { ...surveySubmissionData }, // Send the submission data
       {
         headers: {

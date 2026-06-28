@@ -1,7 +1,6 @@
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
-
-const API_BASE_URL = "http://localhost:8080/api";
+import { API_BASE_URL } from "./config";
 
 // Create axios instance with default configs
 const apiClient = axios.create({

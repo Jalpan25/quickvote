@@ -1,4 +1,5 @@
 import axios from "axios";
+import { API_BASE_URL } from "./config";
 
 // Helper function to get JWT token from localStorage
 const getToken = () => {
@@ -16,7 +17,7 @@ export const fetchSurveysByEmail = async (email) => {
 
   try {
     const response = await axios.post(
-      'http://localhost:8080/api/surveys/filter-by-email',
+      `${API_BASE_URL}/surveys/filter-by-email`,
       { email, institutionName }, // 👈 Include both email and institutionName in payload
       {
         headers: {

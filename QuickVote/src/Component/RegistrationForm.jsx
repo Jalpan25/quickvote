@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { registerUser } from "../APIs/registerApi";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../APIs/config";
 
 const RegistrationForm = () => {
   const navigate = useNavigate();
@@ -169,7 +170,7 @@ const RegistrationForm = () => {
   console.log("Submitting data:", dataToSend);
 
   try {
-    const response = await fetch("http://localhost:8080/api/admins/register", {
+    const response = await fetch(`${API_BASE_URL}/admins/register`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

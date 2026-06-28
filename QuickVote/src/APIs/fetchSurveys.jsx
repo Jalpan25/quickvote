@@ -1,6 +1,8 @@
+import { API_BASE_URL } from "./config";
+
 export const fetchSurveysByAdmin = async (email, token, setAdmin, setCreatedSurveys) => { 
     try {
-        const response = await fetch("http://localhost:8080/api/surveys/fetch-by-admin", {
+        const response = await fetch(`${API_BASE_URL}/surveys/fetch-by-admin`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -26,7 +28,7 @@ export const fetchSurveysByAdmin = async (email, token, setAdmin, setCreatedSurv
 
 export const deleteSurvey = async (surveyId, token) => {
     try {
-        const response = await fetch(`http://localhost:8080/api/surveys/${surveyId}`, {
+        const response = await fetch(`${API_BASE_URL}/surveys/${surveyId}`, {
             method: "DELETE",
             headers: {
                 Authorization: `Bearer ${token}`

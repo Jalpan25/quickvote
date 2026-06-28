@@ -1,8 +1,6 @@
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
-
-// Base URL for API calls
-const API_BASE_URL = "http://localhost:8080/api";
+import { API_BASE_URL } from "./config";
 
 // Function to get JWT token from localStorage
 export const getToken = () => {

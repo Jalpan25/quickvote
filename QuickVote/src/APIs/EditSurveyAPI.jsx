@@ -1,5 +1,6 @@
 // src/APIs/EditSurveyAPI.jsx
 import { jwtDecode } from "jwt-decode";
+import { API_BASE_URL } from "./config";
 
 // Helper function to get and decode JWT token
 export const getDecodedToken = () => {
@@ -19,7 +20,7 @@ export const fetchSurveyAPI = async (surveyId) => {
   const token = localStorage.getItem("token");
   
   try {
-    const response = await fetch(`http://localhost:8080/api/surveys/${surveyId}`, {
+    const response = await fetch(`${API_BASE_URL}/surveys/${surveyId}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -44,7 +45,7 @@ export const updateSurveyAPI = async (surveyId, surveyData) => {
   const token = localStorage.getItem("token");
   
   try {
-    const response = await fetch(`http://localhost:8080/api/surveys/${surveyId}`, {
+    const response = await fetch(`${API_BASE_URL}/surveys/${surveyId}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -75,7 +76,7 @@ export const fetchFixedDomainAPI = async () => {
   }
   
   try {
-    const response = await fetch("http://localhost:8080/api/admins/getFixedDomain", {
+    const response = await fetch(`${API_BASE_URL}/admins/getFixedDomain`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
