@@ -35,6 +35,8 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
                         // 🔓 Public endpoints (permitAll)
                         .requestMatchers(
                                 "/api/admins/register",
