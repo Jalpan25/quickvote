@@ -1,10 +1,10 @@
 import axios from "axios";
-
-const API_BASE_URL = "http://localhost:8080/auth";
+import { API_BASE_URL } from "./config";
+const baseUrl = API_BASE_URL.replace(/\/api$/, "");
 
 export const sendOtp = async (email) => {
   try {
-    await axios.post(`${API_BASE_URL}/send-otp`, { email }, {
+    await axios.post(`${baseUrl}/auth/send-otp`, { email }, {
       headers: { "Content-Type": "application/json" }
     });
     return { success: true };
@@ -15,7 +15,7 @@ export const sendOtp = async (email) => {
 
 export const verifyOtp = async (email, otp) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/verify-otp`, { email, otp }, {
+    const response = await axios.post(`${baseUrl}/auth/verify-otp`, { email, otp }, {
       headers: { "Content-Type": "application/json" }
     });
 
