@@ -1,6 +1,6 @@
 # QuickVote EC2 Docker Deployment
 
-This setup runs the Spring Boot backend and MySQL database on the same EC2 instance.
+This setup runs only the Spring Boot backend on EC2. The backend connects to an existing MySQL database on Amazon RDS.
 
 ## 1. Prepare `.env`
 
@@ -16,16 +16,14 @@ Set real values:
 MAIL_USERNAME=your-email@gmail.com
 MAIL_PASSWORD=your-app-password
 
-MYSQL_DATABASE=quickvote
-MYSQL_ROOT_PASSWORD=use-a-strong-root-password
-
-DB_USERNAME=quickvote_user
-DB_PASSWORD=use-a-strong-db-password
+DB_URL=jdbc:mysql://your-rds-endpoint.ap-south-1.rds.amazonaws.com:3306/quickvote?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+DB_USERNAME=your-rds-username
+DB_PASSWORD=your-rds-password
 
 JWT_SECRET=use-a-long-random-secret
 ```
 
-`DB_URL` is overridden by `docker-compose.yml` so the backend connects to the MySQL container at `mysql:3306`.
+Replace `your-rds-endpoint.ap-south-1.rds.amazonaws.com`, `quickvote`, `DB_USERNAME`, and `DB_PASSWORD` with your RDS endpoint, database name, username, and password.
 
 ## 2. Start On EC2
 
@@ -40,12 +38,11 @@ Check status and logs:
 ```bash
 docker compose ps
 docker compose logs -f backend
-docker compose logs -f mysql
 ```
 
 The backend listens on port `8080`. Open port `8080` in the EC2 security group if the API should be public.
 
-MySQL is bound to `127.0.0.1:3306` on the EC2 host, so it is not exposed publicly. The database data is stored in the Docker volume `quickvote-backend_mysql_data`.
+Allow the EC2 instance to connect to RDS on port `3306`. The usual setup is to add the EC2 security group as an inbound MySQL source in the RDS security group.
 
 ## 3. Update Deployment
 
@@ -59,10 +56,4 @@ docker compose up -d --build
 
 ```bash
 docker compose down
-```
-
-To remove database data too:
-
-```bash
-docker compose down -v
 ```
